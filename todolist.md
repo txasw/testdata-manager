@@ -11,11 +11,11 @@
 - [ ]  remove record from CSV
     - [ ]  remove by TestID
 - [ ]  list record from CSV
-- [ ]  CSV Structure
-    - [ ]  TestID
-    - [ ]  SystemName
-    - [ ]  TestType
-    - [ ]  TestResult
-    - [ ]  Have ≥ 15 records
+- [x]  CSV Structure
+    - [x]  TestID
+    - [x]  SystemName
+    - [x]  TestType
+    - [x]  TestResult
+    - [x]  Have ≥ 15 records
 - [ ]  Unit Test
 - [ ]  E2E Test
