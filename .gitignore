@@ -1,0 +1,9 @@
+# ignore editor files
+.vscode/
+*.code-workspace
+
+# ignore build files
+build/
+*.o
+*.out
+*.exe
