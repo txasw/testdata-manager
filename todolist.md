@@ -1,0 +1,21 @@
+- [ ]  record data in CSV
+    - [ ]  test_id
+    - [ ]  system_name
+    - [ ]  test_type
+    - [ ]  test_result
+- [ ]  read record from CSV
+- [ ]  add record to CSV
+- [ ]  search record from CSV
+    - [ ]  search by TestID or SystemName
+- [ ]  update record in CSV
+- [ ]  remove record from CSV
+    - [ ]  remove by TestID
+- [ ]  list record from CSV
+- [ ]  CSV Structure
+    - [ ]  TestID
+    - [ ]  SystemName
+    - [ ]  TestType
+    - [ ]  TestResult
+    - [ ]  Have ≥ 15 records
+- [ ]  Unit Test
+- [ ]  E2E Test
