@@ -1,48 +1,53 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-int main() {
-    // Open the CSV file
-    FILE *file = fopen("system_testing_data.csv", "r");
+typedef struct {
+    char *data;
+    size_t size;
+} FileContent;
+
+FileContent* read_file(const char *filename) {
+    FileContent *content = (FileContent *)malloc(sizeof(FileContent));
+    if (content == NULL) {
+        perror("Failed to allocate memory for FileContent");
+        return NULL;
+    }
+
+    FILE *file = fopen(filename, "r");
     if (file == NULL) {
-        perror("Failed to open CSV file");
-        return 1;
+        perror("Failed to open file");
+        free(content);
+        return NULL;
     }
+    fseek(file, 0, SEEK_END);
+    long file_size = ftell(file);
+    fseek(file, 0, SEEK_SET);
 
-    // Get file size
-    fseek(file, 0, SEEK_END); // Move to end of file
-    long file_size = ftell(file); // Get file size
-    fseek(file, 0, SEEK_SET); // Move back to start
 
-    // Allocate memory for file content (+1 for \0)
-    char *buffer = (char *)malloc(file_size + 1);
-    if (buffer == NULL) {
-        perror("Failed to allocate memory");
-
-        // Close the file before exiting in case of error
+    content->data = (char *)malloc(file_size + 1);
+    if (content->data == NULL) {
+        perror("Failed to allocate memory for file data");
         fclose(file);
-        return 1;
+        free(content);
+        return NULL;
     }
 
-    // Read file into buffer
-    size_t bytes_read = fread(buffer, 1, file_size, file);
-    buffer[bytes_read] = '\0';
-
-    // Check if read was successful
-    if (bytes_read != file_size) {
-        perror("Failed to read the entire file");
-
-        // Clean up before exiting in case of error
-        free(buffer);
-        fclose(file);
-        return 1;
-    }
-
-    // Testing output
-    printf("%s\n", buffer);
-
-    // Clean up and exit
-    free(buffer);
+    size_t bytes_read = fread(content->data, 1, file_size, file);
+    content->data[bytes_read] = '\0';
+    content->size = bytes_read;
     fclose(file);
+    return content;
+}
+
+int main() {
+    
+    FileContent *csv = read_file("system_testing_data.csv");
+    if (csv == NULL) {
+        return EXIT_FAILURE;
+    }
+    printf("Size: %zu bytes\n", csv->size);
+    printf("Content:\n%s\n", csv->data);
+    free(csv->data);
+    free(csv);
     return 0;
 }
