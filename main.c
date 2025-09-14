@@ -1,53 +1,32 @@
 #include <stdio.h>
-#include <stdlib.h>
+#include <dirent.h>
 
-typedef struct {
-    char *data;
-    size_t size;
-} FileContent;
+void get_csv_files(const char* dir_path) {
+    DIR *d;
+    struct dirent *dir;
 
-FileContent* read_file(const char *filename) {
-    FileContent *content = (FileContent *)malloc(sizeof(FileContent));
-    if (content == NULL) {
-        perror("Failed to allocate memory for FileContent");
-        return NULL;
+    // Try to open the directory
+    d = opendir(dir_path);
+    if (d == NULL) {
+        perror("Failed to open directory");
+        return;
     }
 
-    FILE *file = fopen(filename, "r");
-    if (file == NULL) {
-        perror("Failed to open file");
-        free(content);
-        return NULL;
-    }
-    fseek(file, 0, SEEK_END);
-    long file_size = ftell(file);
-    fseek(file, 0, SEEK_SET);
-
-
-    content->data = (char *)malloc(file_size + 1);
-    if (content->data == NULL) {
-        perror("Failed to allocate memory for file data");
-        fclose(file);
-        free(content);
-        return NULL;
+    // Read and print all files in the directory
+    while ((dir = readdir(d)) != NULL) {
+        printf("File: %s\n", dir->d_name);
     }
 
-    size_t bytes_read = fread(content->data, 1, file_size, file);
-    content->data[bytes_read] = '\0';
-    content->size = bytes_read;
-    fclose(file);
-    return content;
+    // Reset directory stream to the beginning
+    rewinddir(d);
+
+    // Close the directory
+    closedir(d);
+    return;
 }
 
 int main() {
-    
-    FileContent *csv = read_file("system_testing_data.csv");
-    if (csv == NULL) {
-        return EXIT_FAILURE;
-    }
-    printf("Size: %zu bytes\n", csv->size);
-    printf("Content:\n%s\n", csv->data);
-    free(csv->data);
-    free(csv);
+    get_csv_files(".");
+
     return 0;
 }
