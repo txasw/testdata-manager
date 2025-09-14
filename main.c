@@ -78,18 +78,26 @@ char** get_csv_files(const char* dir_path, int* count) {
     return csv_files;
 }
 
+void free_csv_files(char** files) {
+    if (files == NULL) return;
+    for (int i = 0; files[i] != NULL; i++) {
+        free(files[i]);
+    }
+    free(files);
+}
+
 int main() {
     int count = 0;
     char** csv_files = get_csv_files(".", &count);
     if (csv_files == NULL) {
-        printf("No .csv files found or an error occurred.\n");
+        printf("No CSV files found.\n");
     }else{
-        printf("Found %d .csv files:\n", count);
+        printf("Found %d CSV files:\n", count);
         for (int i = 0; i < count; i++) {
-            printf("%s\n", csv_files[i]);
-            free(csv_files[i]);
+            printf("  - %s\n", csv_files[i]);
         }
-        free(csv_files);
     }
+    
+    free_csv_files(csv_files);
     return 0;
 }
