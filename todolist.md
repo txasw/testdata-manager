@@ -3,7 +3,7 @@
     - [ ]  system_name
     - [ ]  test_type
     - [ ]  test_result
-- [ ]  read record from CSV
+- [x]  read record from CSV
 - [ ]  add record to CSV
 - [ ]  search record from CSV
     - [ ]  search by TestID or SystemName
