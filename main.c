@@ -1,232 +1,145 @@
 #include <stdio.h>
-#include <dirent.h>
 #include <string.h>
 #include <stdlib.h>
-#include <ctype.h>
 
+// Function declarations
 
-char **get_csv_files(const char *dir_path, int *count)
+// Display functions
+void display_welcome_message(void);
+void clear_screen(void);
+void pause_screen(void);
+
+// Main menu functions
+void show_main_menu(void);
+
+// Implementation
+#ifdef _WIN32
+void clear_screen(void)
 {
-    DIR *d;
-    struct dirent *dir;
-    int files_found = 0;
+    system("cls");
+}
+#else
+void clear_screen(void)
+{
+    system("clear");
+}
+#endif
 
-    // Try to open the directory
-    d = opendir(dir_path);
-    if (d == NULL)
-    {
-        perror("Failed to open directory");
-        *count = 0;
-        return NULL;
-    }
-
-    // Read all entries in the directory to count .csv files
-    while ((dir = readdir(d)) != NULL)
-    {
-        const char *filename = dir->d_name;
-        size_t len = strlen(filename);
-
-        // Check if the file has a .csv extension
-        if (len >= 4 && strcmp(filename + len - 4, ".csv") == 0)
-        {
-            files_found++;
-        }
-    }
-
-    // Reset directory stream to the beginning
-    rewinddir(d);
-
-    // Allocate memory for the array of strings
-    char **csv_files = NULL;
-    if (files_found > 0)
-    {
-        csv_files = (char **)malloc((files_found + 1) * sizeof(char *));
-        if (csv_files == NULL)
-        {
-            perror("Failed to allocate memory for file list");
-            closedir(d);
-            *count = 0;
-            return NULL;
-        }
-    }
-    // Populate the array with .csv filenames
-    int i = 0;
-    while ((dir = readdir(d)) != NULL)
-    {
-        const char *filename = dir->d_name;
-        size_t len = strlen(filename);
-        if (len >= 4 && strcmp(filename + len - 4, ".csv") == 0)
-        {
-            // +1 for null terminator
-            csv_files[i] = (char *)malloc(len + 1);
-
-            if (csv_files[i] == NULL)
-            {
-                perror("Failed to allocate memory for filename");
-                for (int j = 0; j < i; j++)
-                {
-                    free(csv_files[j]);
-                }
-                free(csv_files);
-                closedir(d);
-                *count = 0;
-                return NULL;
-            }
-
-            // Copy the filename into the allocated memory
-            strcpy(csv_files[i], filename);
-            i++;
-        }
-    }
-
-    // Terminate the array with a NULL pointer
-    if (csv_files != NULL)
-    {
-        csv_files[files_found] = NULL;
-    }
-
-    // Close the directory
-    closedir(d);
-    *count = files_found;
-    return csv_files;
+void pause_screen(void)
+{
+    printf("\nPress Enter to continue...");
+    while (getchar() != '\n');
 }
 
-void free_csv_files(char **files)
+int get_menu_choice(int min, int max)
 {
-    if (files == NULL)
-        return;
-    for (int i = 0; files[i] != NULL; i++)
+    char input[10];
+    int choice;
+    printf("Enter your choice (%d-%d): ", min, max);
+    fgets(input, sizeof(input), stdin);
+    input[strcspn(input, "\n")] = '\0';
+
+    if (sscanf(input, "%d", &choice) == 1 && choice >= min && choice <= max)
     {
-        free(files[i]);
+        return choice;
     }
-    free(files);
+    printf("Invalid choice. Please enter a number between %d and %d.\n", min, max);
+
+    return -1;
 }
 
-int main()
+void display_welcome_message(void)
 {
-    char database_path[256];
-    printf("Greeting! Welcome to the 'Testing Data Manager Program'\n");
-    printf("Loading all database files (.csv)...\n");
+    clear_screen();
+    printf("╔══════════════════════════════════════════════════════════════╗\n");
+    printf("║                    SYSTEM TESTING DATA MANAGER               ║\n");
+    printf("║                     ระบบจัดการข้อมูลการทดสอบระบบ                ║\n");
+    printf("╠══════════════════════════════════════════════════════════════╣\n");
+    printf("║ Current Database: %-42s ║\n", "None");
+    printf("╚══════════════════════════════════════════════════════════════╝\n\n");
+}
 
-    int count = 0;
-    char **csv_files = get_csv_files(".", &count);
+void show_main_menu(void)
+{
+    display_welcome_message();
 
-    // csv_files = NULL; // For testing no files found scenario
+    printf("Main Menu:\n");
+    printf("1. List all records\n");
+    printf("2. Add new record\n");
+    printf("3. Search records\n");
+    printf("4. Update record\n");
+    printf("5. Recovery data\n");
+    printf("6. Change database\n");
+    printf("7. Run tests\n");
+    printf("8. Exit program\n");
+}
+// Main function
+int main(void)
+{
+    printf("╔══════════════════════════════════════════════════════════════╗\n");
+    printf("║                 SYSTEM TESTING DATA MANAGER                  ║\n");
+    printf("║                  ระบบจัดการข้อมูลกรทดสอบระบบ                    ║\n");
+    printf("║                                                              ║\n");
+    printf("║                 Welcome to the application!                  ║\n");
+    printf("╚══════════════════════════════════════════════════════════════╝\n\n");
 
-    if (csv_files == NULL)
+    pause_screen();
+
+    // Main application loop
+    while (1)
     {
-        // TODO: Make this into a function to handle user input
-        char input[256];
-        while (1)
+        show_main_menu();
+
+        int choice = get_menu_choice(1, 8);
+        if (choice == -1)
         {
-            printf("Not found any database files, Would you like to create a new one? (Y/N) : ");
-            fflush(stdout);
 
-            if (fgets(input, sizeof(input), stdin) == NULL)
-            {
-                continue;
-            }
+            pause_screen();
+            continue;
+        }
 
-            input[strcspn(input, "\n")] = 0;
-            if (strlen(input) == 1)
+        switch (choice)
+        {
+        case 1:
+            printf("\nList all records selected.\n");
+            pause_screen();
+            break;
+        case 2:
+            printf("\nAdd new record selected.\n");
+            pause_screen();
+            break;
+        case 3:
+            printf("\nSearch records selected.\n");
+            pause_screen();
+            break;
+        case 4:
+            printf("\nUpdate record selected.\n");
+            pause_screen();
+            break;
+        case 5:
+            printf("\nRecovery data selected.\n");
+            pause_screen();
+            break;
+        case 6:
+            printf("\nChange database selected.\n");
+            pause_screen();
+            break;
+        case 7:
+            printf("\nSelect test type\n");
+            pause_screen();
+            break;
+        case 8:
+            printf("Are you sure you want to exit? (y/n): ");
+            char confirm[10];
+            fgets(confirm, sizeof(confirm), stdin);
+            if (confirm[0] == 'y' || confirm[0] == 'Y')
             {
-                char choice = tolower(input[0]);
-                if (choice == 'y')
-                {
-                    // TODO: Implement create new database file functionality
-                    // TODO: Let user specify the name of the new database file
-                    printf("Feature to create a new database file is not yet implemented.\n");
-                    break;
-                }
-                else if (choice == 'n')
-                {
-                    // TODO: Implement enter path manually functionality
-                    printf("Feature to enter path manually is not yet implemented.\n");
-                    break;
-                }
+                printf("Thank you for using System Testing Data Manager!\n");
+                return 0;
             }
+            break;
         }
     }
-    else
-    {
-        printf("There are %d CSV files found in this directory!\n", count);
-        printf("=============================================\n");
-        printf("AVAILABLE DATABASE FILES IN CURRENT DIRECTORY\n");
-        printf("=============================================\n");
-
-        for (int i = 0; i < count; i++)
-        {
-            printf("[%d] %s\n", i, csv_files[i]);
-        }
-        printf("\nOR\n\n");
-        printf("[N] Create a New database file\n");
-        printf("[M] Enter path manually\n");
-        printf("[X] Exit program\n");
-        printf("\n");
-
-        // TODO: Make this into a function to handle user input
-        char input[256];
-        while (1)
-        {
-            printf("Please select database file (");
-            if (count > 1)
-            {
-                printf("0-%d", count - 1);
-            }
-            else
-            {
-                printf("0");
-            }
-            printf("/N/M/X): ");
-
-            // Ensure prompt is shown before input
-            fflush(stdout);
-
-            if (fgets(input, sizeof(input), stdin) == NULL)
-            {
-                continue;
-            }
-
-            input[strcspn(input, "\n")] = 0;
-
-            if (strcmp(input, "X") == 0 || strcmp(input, "x") == 0 || strcmp(input, "Q") == 0 || strcmp(input, "q") == 0)
-            {
-                printf("Exiting program. Goodbye!\n");
-                break;
-            }
-            else if (strcmp(input, "N") == 0 || strcmp(input, "n") == 0)
-            {
-                printf("Feature to create a new database file is not yet implemented.\n");
-                break;
-            }
-            else if (strcmp(input, "M") == 0 || strcmp(input, "m") == 0)
-            {
-                printf("Entering path manually...\n");
-                break;
-            }
-            else
-            {
-                int selection;
-                if (sscanf(input, "%d", &selection) == 1)
-                {
-                    if (selection >= 0 && selection < count)
-                    {
-                        strcpy(database_path, csv_files[selection]);
-                        break;
-                    }
-                }
-                printf("Invalid input. Please try again.\n");
-            }
-        }
-    }
-
-    // TODO: Check if database is in valid format
-    printf("=============================================\n");
-    printf("WELCOME TO THE TESTING DATA MANAGER\n");
-    printf("DATABASE: %s\n", database_path);
-    printf("=============================================\n");
-
-    free_csv_files(csv_files);
 
     return 0;
 }
