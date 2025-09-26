@@ -1,12 +1,14 @@
 #include <stdio.h>
-#include <string.h>
 #include <stdlib.h>
+#include <string.h>
+#include <ctype.h>
 
 // Constants
 #define MAX_FILES 100
 #define MAX_PATH 260
 #define MAX_LINE 1024
 #define MAX_RECORDS 10000
+#define MAX_ATTEMPTS 3
 #define PAGINATION_SIZE 50
 #define MIN_NAME_LENGTH 3
 #define REQUIRED_HEADER "TestID,SystemName,TestType,TestResult,Active"
@@ -89,21 +91,159 @@ void pause_screen(void)
     while (getchar() != '\n');
 }
 
+char *trim_string(char *str)
+{
+    if (!str)
+        return NULL;
+
+    // Remove leading spaces
+    while (isspace(*str))
+        str++;
+
+    // Remove trailing spaces
+    char *end = str + strlen(str) - 1;
+    while (end > str && isspace(*end))
+        end--;
+    *(end + 1) = '\0';
+
+    return str;
+}
+
+int validate_system_name(const char *input)
+{
+    if (!input)
+        return 0;
+
+    char *original = malloc(strlen(input) + 1);
+    strcpy(original, input);
+    char *trimmed = trim_string(original);
+
+    int len = strlen(trimmed);
+    if (len < MIN_NAME_LENGTH)
+    {
+        free(original);
+        return 0;
+    }
+
+    for (int i = 0; i < len; i++)
+    {
+        char c = trimmed[i];
+        if (!isalnum(c) && c != '(' && c != ')' && c != '[' && c != ']' &&
+            c != '-' && c != '_' && c != '.' && c != ' ')
+        {
+            free(original);
+            return 0;
+        }
+    }
+
+    free(original);
+    return 1;
+}
+
+int validate_test_type(const char *input)
+{
+    if (!input)
+        return 0;
+
+    char *original = malloc(strlen(input) + 1);
+    strcpy(original, input);
+    char *trimmed = trim_string(original);
+
+    int len = strlen(trimmed);
+    if (len < MIN_NAME_LENGTH)
+    {
+        free(original);
+        return 0;
+    }
+
+    for (int i = 0; i < len; i++)
+    {
+        if (!isalnum(trimmed[i]))
+        {
+            free(original);
+            return 0;
+        }
+    }
+
+    free(original);
+    return 1;
+}
+
+int get_valid_input(char *buffer, int max_len, int (*validator)(const char *), const char *prompt)
+{
+    int attempts = 0;
+
+    while (attempts < MAX_ATTEMPTS)
+    {
+        printf("%s: ", prompt);
+        if (!fgets(buffer, max_len, stdin))
+        {
+            attempts++;
+            printf("Error reading input. Please try again.\n");
+            continue;
+        }
+
+        // Remove newline
+        buffer[strcspn(buffer, "\n")] = '\0';
+
+        if (strlen(trim_string(buffer)) == 0)
+        {
+            attempts++;
+            printf("Empty input detected. Please try again.\n");
+            continue;
+        }
+
+        if (validator && !validator(buffer))
+        {
+            attempts++;
+            printf("Invalid input format. Please try again.\n");
+            continue;
+        }
+
+        return 1;
+    }
+
+    printf("Maximum attempts reached. Operation cancelled.\n");
+    return 0;
+}
+
 int get_menu_choice(int min, int max)
 {
     char input[10];
     int choice;
-    printf("Enter your choice (%d-%d): ", min, max);
-    fgets(input, sizeof(input), stdin);
-    input[strcspn(input, "\n")] = '\0';
+    int attempts = 0;
 
-    if (sscanf(input, "%d", &choice) == 1 && choice >= min && choice <= max)
+    while (attempts < MAX_ATTEMPTS)
     {
-        return choice;
-    }
-    printf("Invalid choice. Please enter a number between %d and %d.\n", min, max);
+        printf("Enter your choice (%d-%d): ", min, max);
+        if (!fgets(input, sizeof(input), stdin))
+        {
+            attempts++;
+            continue;
+        }
 
+        input[strcspn(input, "\n")] = '\0';
+
+        if (sscanf(input, "%d", &choice) == 1 && choice >= min && choice <= max)
+        {
+            return choice;
+        }
+
+        attempts++;
+        printf("Invalid choice. Please enter a number between %d and %d.\n", min, max);
+    }
+
+    printf("Maximum attempts reached. Returning to main menu.\n");
     return -1;
+}
+
+void list_all_records(void){}
+void add_new_record(void){}
+void search_records(void){}
+void update_record(void){}
+void recovery_data(void){}
+int change_database(void){
+    return 1;
 }
 
 void display_welcome_message(void)
@@ -159,32 +299,40 @@ int main(void)
         switch (choice)
         {
         case 1:
-            printf("\nList all records selected.\n");
-            pause_screen();
+            list_all_records();
             break;
         case 2:
-            printf("\nAdd new record selected.\n");
-            pause_screen();
+            add_new_record();
             break;
         case 3:
-            printf("\nSearch records selected.\n");
-            pause_screen();
+            search_records();
             break;
         case 4:
-            printf("\nUpdate record selected.\n");
-            pause_screen();
+            update_record();
             break;
         case 5:
-            printf("\nRecovery data selected.\n");
-            pause_screen();
+            recovery_data();
             break;
         case 6:
-            printf("\nChange database selected.\n");
-            pause_screen();
+            change_database();
             break;
         case 7:
-            printf("\nSelect test type\n");
-            pause_screen();
+            printf("\nSelect test type:\n");
+            printf("1. Unit tests\n");
+            printf("2. End-to-end tests\n");
+            printf("3. Return to main menu\n");
+
+            int test_choice = get_menu_choice(1, 3);
+            if (test_choice == 1)
+            {
+                printf("Running unit tests...\n");
+                pause_screen();
+            }
+            else if (test_choice == 2)
+            {
+                printf("Running end-to-end tests...\n");
+                pause_screen();
+            }
             break;
         case 8:
             printf("Are you sure you want to exit? (y/n): ");
