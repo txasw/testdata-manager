@@ -10,7 +10,7 @@
 
 ### 2. Utility Functions
 - [ ] `clear_input_buffer()` - Clear input buffer
-- [ ] `trim_string()` - Remove leading/trailing spaces
+- [x] `trim_string()` - Remove leading/trailing spaces
 - [ ] `count_non_space_chars()` - Count valid characters
 - [ ] `is_valid_filename_char()` - Validate filename characters
 - [ ] `display_header()` - Show program banner
@@ -65,8 +65,8 @@
 - [ ] `testing_menu()` - Testing interface
 
 ### 9. User Interface
-- [ ] `main_menu()` - Main program interface
-- [ ] Beautiful ASCII art headers
+- [x] `main_menu()` - Main program interface
+- [x] Beautiful ASCII art headers
 - [ ] Pagination for large datasets (50+ records)
 - [ ] User-friendly prompts and messages
 - [ ] Error messages and confirmations
