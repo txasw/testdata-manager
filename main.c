@@ -2,15 +2,73 @@
 #include <string.h>
 #include <stdlib.h>
 
+// Constants
+#define MAX_FILES 100
+#define MAX_PATH 260
+#define MAX_LINE 1024
+#define MAX_RECORDS 10000
+#define PAGINATION_SIZE 50
+#define MIN_NAME_LENGTH 3
+#define REQUIRED_HEADER "TestID,SystemName,TestType,TestResult,Active"
+
+// Test Result Options
+typedef enum {
+    FAILED = 0,
+    PASSED,
+    PENDING,
+    SUCCESS
+} TestResult;
+
+// Data Structure
+typedef struct {
+    int test_id;
+    char system_name[100];
+    char test_type[100];
+    TestResult test_result;
+    int active;
+} TestRecord;
+
+typedef struct {
+    TestRecord records[MAX_RECORDS];
+    int count;
+    char filename[MAX_PATH];
+    int next_id;
+} Database;
+
+// Global database instance
+Database db = {0};
+
 // Function declarations
+// File management
+int scan_csv_files(char files[][MAX_PATH]);
+int validate_csv_header(const char* filename);
+int create_new_csv(const char* filename);
+int load_database(const char* filename);
+int save_database(void);
+
+// CRUD operations
+void list_all_records(void);
+void add_new_record(void);
+void search_records(void);
+void update_record(void);
+void delete_record(int test_id, int soft_delete);
+void recovery_data(void);
 
 // Display functions
+void display_record(const TestRecord* record, int index);
+void display_records_paginated(TestRecord* records, int count, const char* title);
 void display_welcome_message(void);
 void clear_screen(void);
 void pause_screen(void);
 
+
+// Memory management
+void cleanup_memory(void);
+
 // Main menu functions
 void show_main_menu(void);
+int select_database(void);
+int change_database(void);
 
 // Implementation
 #ifdef _WIN32
