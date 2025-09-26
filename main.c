@@ -114,14 +114,14 @@ int validate_system_name(const char *input)
     if (!input)
         return 0;
 
-    char *trimmed = malloc(strlen(input) + 1);
-    strcpy(trimmed, input);
-    trimmed = trim_string(trimmed);
+    char *original = malloc(strlen(input) + 1);
+    strcpy(original, input);
+    char *trimmed = trim_string(original);
 
     int len = strlen(trimmed);
     if (len < MIN_NAME_LENGTH)
     {
-        free(trimmed);
+        free(original);
         return 0;
     }
 
@@ -131,12 +131,12 @@ int validate_system_name(const char *input)
         if (!isalnum(c) && c != '(' && c != ')' && c != '[' && c != ']' &&
             c != '-' && c != '_' && c != '.' && c != ' ')
         {
-            free(trimmed);
+            free(original);
             return 0;
         }
     }
 
-    free(trimmed);
+    free(original);
     return 1;
 }
 
@@ -145,14 +145,14 @@ int validate_test_type(const char *input)
     if (!input)
         return 0;
 
-    char *trimmed = malloc(strlen(input) + 1);
-    strcpy(trimmed, input);
-    trimmed = trim_string(trimmed);
+    char *original = malloc(strlen(input) + 1);
+    strcpy(original, input);
+    char *trimmed = trim_string(original);
 
     int len = strlen(trimmed);
     if (len < MIN_NAME_LENGTH)
     {
-        free(trimmed);
+        free(original);
         return 0;
     }
 
@@ -160,12 +160,12 @@ int validate_test_type(const char *input)
     {
         if (!isalnum(trimmed[i]))
         {
-            free(trimmed);
+            free(original);
             return 0;
         }
     }
 
-    free(trimmed);
+    free(original);
     return 1;
 }
 
