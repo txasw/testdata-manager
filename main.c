@@ -598,6 +598,12 @@ void display_records_paginated(TestRecord *records, int count, const char *title
     printf("└─────┴────────┴─────────────────┴──────────────┴──────────┴────────┘\n");
 }
 
+int get_next_test_id(void)
+{
+    return db.next_id++;
+}
+
+
 void list_all_records(void){
     clear_screen();
     printf("LIST ALL ACTIVE RECORDS\n");
@@ -619,7 +625,86 @@ void list_all_records(void){
     free(active_records);
     pause_screen();
 }
-void add_new_record(void){}
+
+void add_new_record(void)
+{
+    clear_screen();
+    printf("ADD NEW RECORD\n");
+    printf("==============\n");
+
+    if (db.count >= MAX_RECORDS)
+    {
+        printf("Database is full. Cannot add new records.\n");
+        pause_screen();
+        return;
+    }
+
+    TestRecord new_record = {0};
+    new_record.test_id = get_next_test_id();
+    new_record.active = 1;
+
+    char buffer[256];
+
+    // Get System Name
+    if (!get_valid_input(buffer, sizeof(buffer), validate_system_name,
+                         "Enter System Name (min 3 chars, alphanumeric + ()[]- allowed)"))
+    {
+        return;
+    }
+    strcpy(new_record.system_name, trim_string(buffer));
+
+    // Get Test Type
+    if (!get_valid_input(buffer, sizeof(buffer), validate_test_type,
+                         "Enter Test Type (min 3 chars, alphanumeric only)"))
+    {
+        return;
+    }
+    strcpy(new_record.test_type, trim_string(buffer));
+
+    // Get Test Result
+    printf("\nSelect Test Result:\n");
+    printf("1. Pending\n");
+    printf("2. Failed\n");
+    printf("3. Passed\n");
+    printf("4. Success\n");
+
+    int choice = get_menu_choice(1, 4);
+    if (choice == -1)
+        return;
+
+    switch (choice)
+    {
+    case 1:
+        new_record.test_result = PENDING;
+        break;
+    case 2:
+        new_record.test_result = FAILED;
+        break;
+    case 3:
+        new_record.test_result = PASSED;
+        break;
+    case 4:
+        new_record.test_result = SUCCESS;
+        break;
+    }
+
+    // Add record to database
+    db.records[db.count++] = new_record;
+
+    if (save_database())
+    {
+        printf("\n✓ Record added successfully! (TestID: %d)\n", new_record.test_id);
+        printf("1 record added to database.\n");
+    }
+    else
+    {
+        printf("✗ Error saving to database.\n");
+        db.count--; // Rollback
+    }
+
+    pause_screen();
+}
+
 void search_records(void){}
 void update_record(void){}
 void recovery_data(void){}
