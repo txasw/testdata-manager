@@ -315,6 +315,40 @@ int validate_csv_header(const char *filename)
     return strcmp(line, REQUIRED_HEADER) == 0;
 }
 
+int create_new_csv(const char *filename)
+{
+    char full_filename[MAX_PATH];
+
+    // Add .csv extension if not present
+    if (strstr(filename, ".csv") == NULL)
+    {
+        snprintf(full_filename, sizeof(full_filename), "%s.csv", filename);
+    }
+    else
+    {
+        strcpy(full_filename, filename);
+    }
+
+    // check if file exists
+    if (access(full_filename, F_OK) != -1)
+    {
+        printf("File '%s' already exists. Choose a different name.\n", full_filename);
+        return 0;
+    }
+
+    FILE *file = fopen(full_filename, "w");
+    if (!file)
+        return 0;
+
+    fprintf(file, "%s\n", REQUIRED_HEADER);
+    fclose(file);
+
+    strcpy(db.filename, full_filename);
+    db.count = 0;
+    db.next_id = 1;
+
+    return 1;
+}
 
 void list_all_records(void){}
 void add_new_record(void){}
@@ -353,6 +387,8 @@ void show_main_menu(void)
 // Main function
 int main(void)
 {
+    create_new_csv("default_database");
+    
     printf("╔══════════════════════════════════════════════════════════════╗\n");
     printf("║                 SYSTEM TESTING DATA MANAGER                  ║\n");
     printf("║                  ระบบจัดการข้อมูลกรทดสอบระบบ                    ║\n");
