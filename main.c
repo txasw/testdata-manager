@@ -416,7 +416,11 @@ int load_database(const char *filename)
             continue;
 
         TestRecord *record = &db.records[count];
-        record->test_id = atoi(token);
+
+        if (atoi(token) > 0)
+            record->test_id = atoi(token);
+        else
+            continue;
 
         if (record->test_id > max_id)
         {
