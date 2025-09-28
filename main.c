@@ -3,6 +3,14 @@
 #include <string.h>
 #include <ctype.h>
 
+#ifdef _WIN32
+#include <windows.h>
+#include <io.h>
+#else
+#include <dirent.h>
+#include <unistd.h>
+#endif
+
 // Constants
 #define MAX_FILES 100
 #define MAX_PATH 260
@@ -236,6 +244,57 @@ int get_menu_choice(int min, int max)
     printf("Maximum attempts reached. Returning to main menu.\n");
     return -1;
 }
+
+#ifdef _WIN32
+int scan_csv_files(char files[][MAX_PATH])
+{
+    WIN32_FIND_DATA findFileData;
+    HANDLE hFind;
+    int count = 0;
+
+    hFind = FindFirstFile("*.csv", &findFileData);
+    if (hFind == INVALID_HANDLE_VALUE)
+    {
+        return 0;
+    }
+
+    do
+    {
+        if (count < MAX_FILES)
+        {
+            strcpy(files[count], findFileData.cFileName);
+            count++;
+        }
+    } while (FindNextFile(hFind, &findFileData) != 0 && count < MAX_FILES);
+
+    FindClose(hFind);
+    return count;
+}
+#else
+int scan_csv_files(char files[][MAX_PATH])
+{
+    DIR *dir;
+    struct dirent *entry;
+    int count = 0;
+
+    dir = opendir(".");
+    if (!dir)
+        return 0;
+
+    while ((entry = readdir(dir)) != NULL && count < MAX_FILES)
+    {
+        char *ext = strrchr(entry->d_name, '.');
+        if (ext && strcmp(ext, ".csv") == 0)
+        {
+            strcpy(files[count], entry->d_name);
+            count++;
+        }
+    }
+
+    closedir(dir);
+    return count;
+}
+#endif
 
 void list_all_records(void){}
 void add_new_record(void){}
