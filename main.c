@@ -87,6 +87,7 @@ const char *test_result_to_string(TestResult result);
 TestResult string_to_test_result(const char *str);
 int find_record_by_id(int test_id);
 int get_next_test_id(void);
+int create_new_database_prompt(void);
 
 // Memory management
 void cleanup_memory(void);
@@ -1244,6 +1245,27 @@ void recovery_data(void)
     pause_screen();
 }
 
+int create_new_database_prompt(void)
+{
+    char filename[MAX_PATH];
+    if (get_valid_input(filename, sizeof(filename), NULL, "Enter database name"))
+    {
+        if (create_new_csv(filename))
+        {
+            printf("✓ Database created successfully: %s\n", db.filename);
+            pause_screen();
+            return 1;
+        }
+        else
+        {
+            printf("✗ Error creating database.\n");
+            pause_screen();
+            return 0;
+        }
+    }
+    return 0;
+}
+
 int select_database(void)
 {
     clear_screen();
@@ -1268,23 +1290,7 @@ int select_database(void)
 
         if (choice == 1)
         {
-            char filename[MAX_PATH];
-            if (get_valid_input(filename, sizeof(filename), NULL, "Enter database name"))
-            {
-                if (create_new_csv(filename))
-                {
-                    printf("✓ Database created successfully: %s\n", db.filename);
-                    pause_screen();
-                    return 1;
-                }
-                else
-                {
-                    printf("✗ Error creating database.\n");
-                    pause_screen();
-                    return 0;
-                }
-            }
-            return 0;
+            return create_new_database_prompt();
         }
 
         if (choice == 2)
@@ -1329,24 +1335,7 @@ int select_database(void)
 
     if (choice == file_count + 1)
     {
-        // Create new database
-        char filename[MAX_PATH];
-        if (get_valid_input(filename, sizeof(filename), NULL, "Enter database name"))
-        {
-            if (create_new_csv(filename))
-            {
-                printf("✓ Database created successfully: %s\n", db.filename);
-                pause_screen();
-                return 1;
-            }
-            else
-            {
-                printf("✗ Error creating database.\n");
-                pause_screen();
-                return 0;
-            }
-        }
-        return 0;
+        return create_new_database_prompt();
     }
 
     if (choice == file_count + 2)
