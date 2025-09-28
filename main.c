@@ -761,6 +761,12 @@ void search_records(void)
 
     // Search in all fields
     TestRecord *results = malloc(db.count * sizeof(TestRecord));
+    if (results == NULL && db.count > 0)
+    {
+        printf("Error: Unable to allocate memory for search results.\n");
+        pause_screen();
+        return;
+    }
     int result_count = 0;
 
     for (int i = 0; i < db.count; i++)
