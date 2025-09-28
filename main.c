@@ -88,6 +88,7 @@ TestResult string_to_test_result(const char *str);
 int find_record_by_id(int test_id);
 int get_next_test_id(void);
 int create_new_database_prompt(void);
+int enter_manual_path_prompt(void);
 
 // Memory management
 void cleanup_memory(void);
