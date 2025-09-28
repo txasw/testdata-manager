@@ -87,6 +87,8 @@ const char *test_result_to_string(TestResult result);
 TestResult string_to_test_result(const char *str);
 int find_record_by_id(int test_id);
 int get_next_test_id(void);
+int create_new_database_prompt(void);
+int enter_manual_path_prompt(void);
 
 // Memory management
 void cleanup_memory(void);
@@ -258,7 +260,7 @@ int get_menu_choice(int min, int max)
         printf("Invalid choice. Please enter a number between %d and %d.\n", min, max);
     }
 
-    printf("Maximum attempts reached. Returning to main menu.\n");
+    printf("Maximum attempts reached. Operation cancelled.\n");
     return -1;
 }
 
@@ -528,7 +530,7 @@ void display_welcome_message(void)
     printf("║                    SYSTEM TESTING DATA MANAGER               ║\n");
     printf("║                     ระบบจัดการข้อมูลการทดสอบระบบ                ║\n");
     printf("╠══════════════════════════════════════════════════════════════╣\n");
-    printf("║ Current Database: %-42s ║\n", "None");
+    printf("║ Current Database: %-42s ║\n", db.filename);
     printf("╚══════════════════════════════════════════════════════════════╝\n\n");
 }
 
@@ -1244,9 +1246,165 @@ void recovery_data(void)
     pause_screen();
 }
 
+int create_new_database_prompt(void)
+{
+    char filename[MAX_PATH];
+    if (get_valid_input(filename, sizeof(filename), NULL, "Enter database name"))
+    {
+        if (create_new_csv(filename))
+        {
+            printf("✓ Database created successfully: %s\n", db.filename);
+            pause_screen();
+            return 1;
+        }
+        else
+        {
+            printf("✗ Error creating database.\n");
+            pause_screen();
+            return 0;
+        }
+    }
+    return 0;
+}
+
+int enter_manual_path_prompt(void)
+{
+    char path[MAX_PATH];
+    if (get_valid_input(path, sizeof(path), NULL, "Enter CSV file path"))
+    {
+        if (validate_csv_header(path) && load_database(path))
+        {
+            printf("✓ Database loaded successfully: %s\n", db.filename);
+            pause_screen();
+            return 1;
+        }
+        else
+        {
+            printf("✗ Invalid CSV file or header format.\n");
+            pause_screen();
+            return 0;
+        }
+    }
+    return 0;
+}
+
+int select_database(void)
+{
+    clear_screen();
+    printf("SELECT DATABASE\n");
+    printf("===============\n");
+
+    char files[MAX_FILES][MAX_PATH];
+    int file_count = scan_csv_files(files);
+
+    if (file_count == 0)
+    {
+        printf("No CSV files found in current directory.\n\n");
+        printf("Options:\n");
+        printf("1. Create new database\n");
+        printf("2. Enter manual path\n");
+        printf("3. Do nothing\n");
+        printf("\n");
+
+        int choice = get_menu_choice(1, 3);
+        if (choice == -1 || choice == 3)
+            return 0;
+
+        if (choice == 1)
+        {
+            return create_new_database_prompt();
+        }
+
+        if (choice == 2)
+        {
+
+            return enter_manual_path_prompt();
+        }
+    }
+
+    printf("Found %d CSV file(s):\n", file_count);
+    for (int i = 0; i < file_count; i++)
+    {
+        printf("%d. %s\n", i + 1, files[i]);
+    }
+
+    printf("\nOther Options:\n");
+
+    printf("%d. Create new database\n", file_count + 1);
+    printf("%d. Enter manual path\n", file_count + 2);
+    printf("%d. Do nothing\n", file_count + 3);
+
+    printf("\n");
+
+    int choice = get_menu_choice(1, file_count + 3);
+    if (choice == -1 || choice == file_count + 3)
+        return 0;
+
+    if (choice == file_count + 1)
+    {
+        return create_new_database_prompt();
+    }
+
+    if (choice == file_count + 2)
+    {
+        return enter_manual_path_prompt();
+    }
+
+    // Load selected file
+    char *selected_file = files[choice - 1];
+
+    if (!validate_csv_header(selected_file))
+    {
+        printf("✗ Invalid header format in %s\n", selected_file);
+        printf("Required header: %s\n", REQUIRED_HEADER);
+
+        printf("Try another file? (y/n): ");
+        char retry[10];
+        fgets(retry, sizeof(retry), stdin);
+
+        if (retry[0] == 'y' || retry[0] == 'Y')
+        {
+            return select_database();
+        }
+        return 0;
+    }
+
+    if (load_database(selected_file))
+    {
+        printf("✓ Database loaded successfully: %s\n", db.filename);
+        printf("Records loaded: %d\n", db.count);
+        pause_screen();
+        return 1;
+    }
+    else
+    {
+        printf("✗ Error loading database.\n");
+        pause_screen();
+        return 0;
+    }
+}
+
 int change_database(void)
 {
-    return 1;
+    printf("Current database will be closed. Continue? (y/n): ");
+    char confirm[10];
+    fgets(confirm, sizeof(confirm), stdin);
+
+    if (confirm[0] != 'y' && confirm[0] != 'Y')
+    {
+        return 1;
+    }
+
+    if (select_database())
+    {
+        printf("Database changed successfully.\n");
+        return 1;
+    }
+    else
+    {
+        printf("No database selected. Exiting to main menu.\n");
+        return 0;
+    }
 }
 
 void show_main_menu(void)
@@ -1295,7 +1453,8 @@ char *strcasestr(const char *haystack, const char *needle)
 // Main function
 int main(void)
 {
-    load_database("testdata.csv"); // Load a test database for demonstration
+    pause_screen();
+    clear_screen();
     printf("╔══════════════════════════════════════════════════════════════╗\n");
     printf("║                 SYSTEM TESTING DATA MANAGER                  ║\n");
     printf("║                  ระบบจัดการข้อมูลกรทดสอบระบบ                    ║\n");
@@ -1304,6 +1463,18 @@ int main(void)
     printf("╚══════════════════════════════════════════════════════════════╝\n\n");
 
     pause_screen();
+
+    while (!select_database())
+    {
+        printf("No database selected. Try again? (y/n): ");
+        char retry[10];
+        fgets(retry, sizeof(retry), stdin);
+        if (retry[0] != 'y' && retry[0] != 'Y')
+        {
+            printf("Exiting program. Goodbye!\n");
+            return 0;
+        }
+    }
 
     // Main application loop
     while (1)
