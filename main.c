@@ -26,7 +26,8 @@ typedef enum {
     FAILED = 0,
     PASSED,
     PENDING,
-    SUCCESS
+    SUCCESS,
+    INVALID_RESULT = -1
 } TestResult;
 
 // Data Structure
@@ -376,6 +377,8 @@ const char *test_result_to_string(TestResult result)
 
 TestResult string_to_test_result(const char *str)
 {
+    if (!str)
+        return INVALID_RESULT;
     if (strcasecmp(str, "Failed") == 0)
         return FAILED;
     if (strcasecmp(str, "Passed") == 0)
@@ -384,7 +387,7 @@ TestResult string_to_test_result(const char *str)
         return PENDING;
     if (strcasecmp(str, "Success") == 0)
         return SUCCESS;
-    return PENDING;
+    return INVALID_RESULT;
 }
 
 int load_database(const char *filename)
@@ -438,11 +441,18 @@ int load_database(const char *filename)
             strncpy(record->test_type, token, sizeof(record->test_type) - 1);
             record->test_type[sizeof(record->test_type) - 1] = '\0';
         }
-
+        
         token = strtok(NULL, ",");
-        if (token)
-            record->test_result = string_to_test_result(token);
-
+        if (token) {
+            TestResult result = string_to_test_result(token);
+            if (result == INVALID_RESULT) {
+                printf("Warning: Invalid test result '%s' in record %d, defaulting to PENDING\n", token, record->test_id);
+                record->test_result = PENDING;
+            } else {
+                record->test_result = result;
+            }
+        }
+        
         token = strtok(NULL, ",");
         if (token) {
             char *endptr;
