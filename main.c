@@ -330,7 +330,11 @@ int create_new_csv(const char *filename)
     }
 
     // check if file exists
+#ifdef _WIN32
+    if (_access(full_filename, 0) != -1)
+#else
     if (access(full_filename, F_OK) != -1)
+#endif
     {
         printf("File '%s' already exists. Choose a different name.\n", full_filename);
         return 0;
