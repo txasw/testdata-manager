@@ -559,9 +559,9 @@ void display_records_paginated(TestRecord *records, int count, const char *title
     }
 
     printf("\n%s (Total: %d records)\n", title, count);
-    printf("┌─────┬────────┬────────────────────────────────┬───────────────────────────┬──────────┬────────┐\n");
-    printf("│ No. │ TestID │ SystemName                     │ TestType                  │ Result   │ Status │\n");
-    printf("├─────┼────────┼────────────────────────────────┼───────────────────────────┼──────────┼────────┤\n");
+    printf("┌─────┬────────┬────────────────────────────────┬───────────────────────────┬──────────┬─────────┐\n");
+    printf("│ No. │ TestID │ SystemName                     │ TestType                  │ Result   │ Status  │\n");
+    printf("├─────┼────────┼────────────────────────────────┼───────────────────────────┼──────────┼─────────┤\n");
 
     if (count > PAGINATION_SIZE)
     {
@@ -572,9 +572,9 @@ void display_records_paginated(TestRecord *records, int count, const char *title
         if (choice[0] == 'n' || choice[0] == 'N')
         {
             clear_screen();
-            printf("┌─────┬────────┬────────────────────────────────┬───────────────────────────┬──────────┬────────┐\n");
-            printf("│ No. │ TestID │ SystemName                     │ TestType                  │ Result   │ Status │\n");
-            printf("├─────┼────────┼────────────────────────────────┼───────────────────────────┼──────────┼────────┤\n");
+            printf("┌─────┬────────┬────────────────────────────────┬───────────────────────────┬──────────┬─────────┐\n");
+            printf("│ No. │ TestID │ SystemName                     │ TestType                  │ Result   │ Status  │\n");
+            printf("├─────┼────────┼────────────────────────────────┼───────────────────────────┼──────────┼─────────┤\n");
             // Paginated display
             int page = 0;
             int total_pages = (count + PAGINATION_SIZE - 1) / PAGINATION_SIZE;
@@ -589,7 +589,7 @@ void display_records_paginated(TestRecord *records, int count, const char *title
                     display_record(&records[i], i);
                 }
 
-                printf("└─────┴────────┴────────────────────────────────┴───────────────────────────┴──────────┴────────┘\n");
+                printf("└─────┴────────┴────────────────────────────────┴───────────────────────────┴──────────┴─────────┘\n");
                 printf("Page %d of %d | (p)revious (n)ext (q)uit: ", page + 1, total_pages);
 
                 char nav[10];
@@ -612,24 +612,24 @@ void display_records_paginated(TestRecord *records, int count, const char *title
 
                 clear_screen();
 
-                printf("┌─────┬────────┬────────────────────────────────┬───────────────────────────┬──────────┬────────┐\n");
-                printf("│ No. │ TestID │ SystemName                     │ TestType                  │ Result   │ Status │\n");
-                printf("├─────┼────────┼────────────────────────────────┼───────────────────────────┼──────────┼────────┤\n");
+                printf("┌─────┬────────┬────────────────────────────────┬───────────────────────────┬──────────┬─────────┐\n");
+                printf("│ No. │ TestID │ SystemName                     │ TestType                  │ Result   │ Status  │\n");
+                printf("├─────┼────────┼────────────────────────────────┼───────────────────────────┼──────────┼─────────┤\n");
             }
             return;
         }
     }
 
     clear_screen();
-    printf("┌─────┬────────┬────────────────────────────────┬───────────────────────────┬──────────┬────────┐\n");
-    printf("│ No. │ TestID │ SystemName                     │ TestType                  │ Result   │ Status │\n");
-    printf("├─────┼────────┼────────────────────────────────┼───────────────────────────┼──────────┼────────┤\n");
+    printf("┌─────┬────────┬────────────────────────────────┬───────────────────────────┬──────────┬─────────┐\n");
+    printf("│ No. │ TestID │ SystemName                     │ TestType                  │ Result   │ Status  │\n");
+    printf("├─────┼────────┼────────────────────────────────┼───────────────────────────┼──────────┼─────────┤\n");
     // Display all records
     for (int i = 0; i < count; i++)
     {
         display_record(&records[i], i);
     }
-    printf("└─────┴────────┴────────────────────────────────┴───────────────────────────┴──────────┴────────┘\n");
+    printf("└─────┴────────┴────────────────────────────────┴───────────────────────────┴──────────┴─────────┘\n");
 }
 
 int find_record_by_id(int test_id)
