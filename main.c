@@ -1099,7 +1099,133 @@ void delete_record(int test_id, int soft_delete)
     pause_screen();
 }
 
-void recovery_data(void) {}
+void recovery_data(void)
+{
+    clear_screen();
+    printf("RECOVERY DATA\n");
+    printf("=============\n");
+
+    // Filter deleted records
+    TestRecord *deleted_records = malloc(db.count * sizeof(TestRecord));
+    int deleted_count = 0;
+
+    for (int i = 0; i < db.count; i++)
+    {
+        if (!db.records[i].active)
+        {
+            deleted_records[deleted_count++] = db.records[i];
+        }
+    }
+
+    if (deleted_count == 0)
+    {
+        printf("No deleted records found.\n");
+        free(deleted_records);
+        pause_screen();
+        return;
+    }
+
+    display_records_paginated(deleted_records, deleted_count, "Deleted Records");
+
+    printf("\nSelect action:\n");
+    printf("1. Recover a record\n");
+    printf("2. Permanently delete a record\n");
+    printf("3. Return to main menu\n");
+
+    int action = get_menu_choice(1, 3);
+    if (action == -1 || action == 3)
+    {
+        free(deleted_records);
+        return;
+    }
+
+    int attempts = 0;
+    while (attempts < MAX_ATTEMPTS)
+    {
+        printf("Enter TestID: ");
+        int test_id;
+        if (scanf("%d", &test_id) != 1)
+        {
+            attempts++;
+            printf("Invalid input. Please enter a valid TestID.\n");
+            while (getchar() != '\n')
+                ;
+            continue;
+        }
+        while (getchar() != '\n')
+            ;
+
+        int index = find_record_by_id(test_id);
+        if (index == -1 || db.records[index].active)
+        {
+            attempts++;
+            printf("TestID %d not found in deleted records.\n", test_id);
+            continue;
+        }
+
+        // Show the record
+        TestRecord *record = &db.records[index];
+        printf("\n--- Record Found ---\n");
+        printf("TestID: %d\n", record->test_id);
+        printf("SystemName: %s\n", record->system_name);
+        printf("TestType: %s\n", record->test_type);
+        printf("TestResult: %s\n", test_result_to_string(record->test_result));
+
+        if (action == 1)
+        {
+            printf("\nConfirm recovery of this record? (y/n): ");
+            char confirm[10];
+            fgets(confirm, sizeof(confirm), stdin);
+
+            if (confirm[0] == 'y' || confirm[0] == 'Y')
+            {
+                record->active = 1;
+                if (save_database())
+                {
+                    printf("✓ Record recovered successfully!\n");
+                    printf("1 record recovered.\n");
+                }
+                else
+                {
+                    printf("✗ Error saving to database.\n");
+                    record->active = 0; // Rollback
+                }
+            }
+            else
+            {
+                printf("Recovery cancelled.\n");
+            }
+        }
+        else if (action == 2)
+        {
+            printf("\n⚠️  WARNING: This will permanently delete the record.\n");
+            printf("Type the TestID again to confirm permanent deletion: ");
+
+            int confirm_id;
+            if (scanf("%d", &confirm_id) != 1 || confirm_id != test_id)
+            {
+                printf("TestID mismatch. Operation cancelled.\n");
+                while (getchar() != '\n')
+                    ;
+            }
+            else
+            {
+                delete_record(test_id, 0);
+            }
+            while (getchar() != '\n')
+                ;
+        }
+
+        free(deleted_records);
+        pause_screen();
+        return;
+    }
+
+    printf("Maximum attempts reached. Returning to main menu.\n");
+    free(deleted_records);
+    pause_screen();
+}
+
 int change_database(void)
 {
     return 1;
