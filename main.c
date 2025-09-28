@@ -387,8 +387,6 @@ void show_main_menu(void)
 // Main function
 int main(void)
 {
-    create_new_csv("default_database");
-    
     printf("╔══════════════════════════════════════════════════════════════╗\n");
     printf("║                 SYSTEM TESTING DATA MANAGER                  ║\n");
     printf("║                  ระบบจัดการข้อมูลกรทดสอบระบบ                    ║\n");
