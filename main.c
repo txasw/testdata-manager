@@ -22,7 +22,8 @@
 #define REQUIRED_HEADER "TestID,SystemName,TestType,TestResult,Active"
 
 // Test Result Options
-typedef enum {
+typedef enum
+{
     FAILED = 0,
     PASSED,
     PENDING,
@@ -31,7 +32,8 @@ typedef enum {
 } TestResult;
 
 // Data Structure
-typedef struct {
+typedef struct
+{
     int test_id;
     char system_name[100];
     char test_type[100];
@@ -39,7 +41,8 @@ typedef struct {
     int active;
 } TestRecord;
 
-typedef struct {
+typedef struct
+{
     TestRecord records[MAX_RECORDS];
     int count;
     char filename[MAX_PATH];
@@ -52,9 +55,9 @@ Database db = {0};
 // Function declarations
 // File management
 int scan_csv_files(char files[][MAX_PATH]);
-int validate_csv_header(const char* filename);
-int create_new_csv(const char* filename);
-int load_database(const char* filename);
+int validate_csv_header(const char *filename);
+int create_new_csv(const char *filename);
+int load_database(const char *filename);
 int save_database(void);
 
 // Input validation
@@ -73,8 +76,8 @@ void delete_record(int test_id, int soft_delete);
 void recovery_data(void);
 
 // Display functions
-void display_record(const TestRecord* record, int index);
-void display_records_paginated(TestRecord* records, int count, const char* title);
+void display_record(const TestRecord *record, int index);
+void display_records_paginated(TestRecord *records, int count, const char *title);
 void display_welcome_message(void);
 void clear_screen(void);
 void pause_screen(void);
@@ -82,6 +85,8 @@ void pause_screen(void);
 // Utility functions
 const char *test_result_to_string(TestResult result);
 TestResult string_to_test_result(const char *str);
+int find_record_by_id(int test_id);
+int get_next_test_id(void);
 
 // Memory management
 void cleanup_memory(void);
@@ -107,7 +112,8 @@ void clear_screen(void)
 void pause_screen(void)
 {
     printf("\nPress Enter to continue...");
-    while (getchar() != '\n');
+    while (getchar() != '\n')
+        ;
 }
 
 char *trim_string(char *str)
@@ -438,35 +444,45 @@ int load_database(const char *filename)
         }
 
         token = strtok(NULL, ",");
-        if (token) {
+        if (token)
+        {
             strncpy(record->system_name, token, sizeof(record->system_name) - 1);
             record->system_name[sizeof(record->system_name) - 1] = '\0';
         }
 
         token = strtok(NULL, ",");
-        if (token) {
+        if (token)
+        {
             strncpy(record->test_type, token, sizeof(record->test_type) - 1);
             record->test_type[sizeof(record->test_type) - 1] = '\0';
         }
-        
+
         token = strtok(NULL, ",");
-        if (token) {
+        if (token)
+        {
             TestResult result = string_to_test_result(token);
-            if (result == INVALID_RESULT) {
+            if (result == INVALID_RESULT)
+            {
                 printf("Warning: Invalid test result '%s' in record %d, defaulting to PENDING\n", token, record->test_id);
                 record->test_result = PENDING;
-            } else {
+            }
+            else
+            {
                 record->test_result = result;
             }
         }
-        
+
         token = strtok(NULL, ",");
-        if (token) {
+        if (token)
+        {
             char *endptr;
             long val = strtol(token, &endptr, 10);
-            if (*endptr == '\0') {
+            if (*endptr == '\0')
+            {
                 record->active = (int)val;
-            } else {
+            }
+            else
+            {
                 record->active = 0;
             }
         }
@@ -598,13 +614,25 @@ void display_records_paginated(TestRecord *records, int count, const char *title
     printf("└─────┴────────┴─────────────────┴──────────────┴──────────┴────────┘\n");
 }
 
+int find_record_by_id(int test_id)
+{
+    for (int i = 0; i < db.count; i++)
+    {
+        if (db.records[i].test_id == test_id)
+        {
+            return i;
+        }
+    }
+    return -1;
+}
+
 int get_next_test_id(void)
 {
     return db.next_id++;
 }
 
-
-void list_all_records(void){
+void list_all_records(void)
+{
     clear_screen();
     printf("LIST ALL ACTIVE RECORDS\n");
     printf("========================\n");
@@ -705,10 +733,375 @@ void add_new_record(void)
     pause_screen();
 }
 
-void search_records(void){}
-void update_record(void){}
-void recovery_data(void){}
-int change_database(void){
+void search_records(void)
+{
+    clear_screen();
+    printf("SEARCH RECORDS\n");
+    printf("==============\n");
+
+    char search_term[256];
+    if (!get_valid_input(search_term, sizeof(search_term), NULL,
+                         "Enter search term (min 3 characters)"))
+    {
+        return;
+    }
+
+    if (strlen(trim_string(search_term)) < 3)
+    {
+        printf("Search term must be at least 3 characters.\n");
+        pause_screen();
+        return;
+    }
+
+    // Search in all fields
+    TestRecord *results = malloc(db.count * sizeof(TestRecord));
+    int result_count = 0;
+
+    for (int i = 0; i < db.count; i++)
+    {
+        if (!db.records[i].active)
+            continue;
+
+        char id_str[20];
+        snprintf(id_str, sizeof(id_str), "%d", db.records[i].test_id);
+
+        if (strstr(id_str, search_term) ||
+            strcasestr(db.records[i].system_name, search_term) ||
+            strcasestr(db.records[i].test_type, search_term) ||
+            strcasestr(test_result_to_string(db.records[i].test_result), search_term))
+        {
+
+            results[result_count++] = db.records[i];
+        }
+    }
+
+    if (result_count == 0)
+    {
+        printf("No records found matching '%s'.\n", search_term);
+        free(results);
+        pause_screen();
+        return;
+    }
+
+    display_records_paginated(results, result_count, "Search Results");
+
+    // Action menu for search results
+    printf("\nSelect an action:\n");
+    printf("1. Update a record\n");
+    printf("2. Delete a record\n");
+    printf("3. Return to main menu\n");
+
+    int action = get_menu_choice(1, 3);
+    if (action == -1 || action == 3)
+    {
+        free(results);
+        return;
+    }
+
+    printf("Enter TestID from search results: ");
+    int test_id;
+    if (scanf("%d", &test_id) != 1)
+    {
+        printf("Invalid TestID.\n");
+        free(results);
+        while (getchar() != '\n')
+            ; // Clear input buffer
+        pause_screen();
+        return;
+    }
+    while (getchar() != '\n')
+        ; // Clear input buffer
+
+    // Verify TestID is in search results
+    int found = 0;
+    for (int i = 0; i < result_count; i++)
+    {
+        if (results[i].test_id == test_id)
+        {
+            found = 1;
+            break;
+        }
+    }
+
+    if (!found)
+    {
+        printf("TestID %d not found in search results.\n", test_id);
+        free(results);
+        pause_screen();
+        return;
+    }
+
+    free(results);
+
+    if (action == 1)
+    {
+        // Update record
+        int index = find_record_by_id(test_id);
+        if (index != -1)
+        {
+            printf("\n--- Record to Update ---\n");
+            printf("TestID: %d\n", db.records[index].test_id);
+            printf("SystemName: %s\n", db.records[index].system_name);
+            printf("TestType: %s\n", db.records[index].test_type);
+            printf("TestResult: %s\n", test_result_to_string(db.records[index].test_result));
+
+            update_record();
+        }
+    }
+    else if (action == 2)
+    {
+        delete_record(test_id, 1);
+    }
+}
+
+void update_record(void)
+{
+    printf("Enter TestID to update: ");
+    int test_id;
+    if (scanf("%d", &test_id) != 1)
+    {
+        printf("Invalid TestID.\n");
+        while (getchar() != '\n')
+            ;
+        pause_screen();
+        return;
+    }
+    while (getchar() != '\n')
+        ;
+
+    int index = find_record_by_id(test_id);
+    if (index == -1 || !db.records[index].active)
+    {
+        printf("Record not found or has been deleted.\n");
+        pause_screen();
+        return;
+    }
+
+    TestRecord *record = &db.records[index];
+    TestRecord backup = *record; // Backup for rollback
+
+    printf("\n--- Current Record ---\n");
+    printf("TestID: %d\n", record->test_id);
+    printf("SystemName: %s\n", record->system_name);
+    printf("TestType: %s\n", record->test_type);
+    printf("TestResult: %s\n", test_result_to_string(record->test_result));
+
+    printf("\nSelect action:\n");
+    printf("1. Update record\n");
+    printf("2. Delete record\n");
+    printf("3. Return to menu\n");
+
+    int action = get_menu_choice(1, 3);
+    if (action == -1 || action == 3)
+        return;
+
+    if (action == 2)
+    {
+        delete_record(test_id, 1);
+        return;
+    }
+
+    // Update mode
+    int changes_made = 0;
+
+    while (1)
+    {
+        printf("\n--- Current Record (Unsaved) ---\n");
+        printf("TestID: %d\n", record->test_id);
+        printf("SystemName: %s\n", record->system_name);
+        printf("TestType: %s\n", record->test_type);
+        printf("TestResult: %s\n", test_result_to_string(record->test_result));
+
+        printf("\nSelect field to update:\n");
+        printf("1. SystemName\n");
+        printf("2. TestType\n");
+        printf("3. TestResult\n");
+        printf("4. Save changes\n");
+        printf("5. Cancel (discard changes)\n");
+
+        int field_choice = get_menu_choice(1, 5);
+        if (field_choice == -1)
+            continue;
+
+        if (field_choice == 5)
+        {
+            printf("Discard all changes? (y/n): ");
+            char confirm[10];
+            fgets(confirm, sizeof(confirm), stdin);
+            if (confirm[0] == 'y' || confirm[0] == 'Y')
+            {
+                *record = backup; // Restore backup
+                printf("Changes discarded.\n");
+                pause_screen();
+                return;
+            }
+            continue;
+        }
+
+        if (field_choice == 4)
+        {
+            if (save_database())
+            {
+                printf("✓ Record updated successfully!\n");
+                if (changes_made)
+                {
+                    printf("1 record updated in database.\n");
+                }
+                else
+                {
+                    printf("No changes were made.\n");
+                }
+            }
+            else
+            {
+                printf("✗ Error saving to database.\n");
+                *record = backup; // Restore backup
+            }
+            pause_screen();
+            return;
+        }
+
+        char buffer[256];
+        switch (field_choice)
+        {
+        case 1: // SystemName
+            if (get_valid_input(buffer, sizeof(buffer), validate_system_name,
+                                "Enter new System Name"))
+            {
+                strcpy(record->system_name, trim_string(buffer));
+                changes_made = 1;
+                printf("✓ SystemName updated.\n");
+            }
+            break;
+
+        case 2: // TestType
+            if (get_valid_input(buffer, sizeof(buffer), validate_test_type,
+                                "Enter new Test Type"))
+            {
+                strcpy(record->test_type, trim_string(buffer));
+                changes_made = 1;
+                printf("✓ TestType updated.\n");
+            }
+            break;
+
+        case 3: // TestResult
+            printf("Select new Test Result:\n");
+            printf("1. Pending\n2. Failed\n3. Passed\n4. Success\n");
+            int result_choice = get_menu_choice(1, 4);
+            if (result_choice != -1)
+            {
+                TestResult old_result = record->test_result;
+                switch (result_choice)
+                {
+                case 1:
+                    record->test_result = PENDING;
+                    break;
+                case 2:
+                    record->test_result = FAILED;
+                    break;
+                case 3:
+                    record->test_result = PASSED;
+                    break;
+                case 4:
+                    record->test_result = SUCCESS;
+                    break;
+                }
+                if (record->test_result != old_result)
+                {
+                    changes_made = 1;
+                    printf("✓ TestResult updated.\n");
+                }
+            }
+            break;
+        }
+    }
+}
+
+void delete_record(int test_id, int soft_delete)
+{
+    int index = find_record_by_id(test_id);
+    if (index == -1)
+    {
+        printf("Record with TestID %d not found.\n", test_id);
+        pause_screen();
+        return;
+    }
+
+    TestRecord *record = &db.records[index];
+
+    if (soft_delete && !record->active)
+    {
+        printf("Record is already deleted.\n");
+        pause_screen();
+        return;
+    }
+
+    if (!soft_delete && record->active)
+    {
+        printf("Record must be soft-deleted first.\n");
+        pause_screen();
+        return;
+    }
+
+    printf("\n--- Record to %s ---\n", soft_delete ? "Delete" : "Permanently Delete");
+    printf("TestID: %d\n", record->test_id);
+    printf("SystemName: %s\n", record->system_name);
+    printf("TestType: %s\n", record->test_type);
+    printf("TestResult: %s\n", test_result_to_string(record->test_result));
+
+    printf("\nAre you sure you want to %s this record? (y/n): ",
+           soft_delete ? "delete" : "permanently delete");
+    char confirm[10];
+    fgets(confirm, sizeof(confirm), stdin);
+
+    if (confirm[0] != 'y' && confirm[0] != 'Y')
+    {
+        printf("Operation cancelled.\n");
+        pause_screen();
+        return;
+    }
+
+    if (soft_delete)
+    {
+        record->active = 0;
+        if (save_database())
+        {
+            printf("✓ Record soft-deleted successfully!\n");
+            printf("1 record deleted from active records.\n");
+        }
+        else
+        {
+            printf("✗ Error saving to database.\n");
+            record->active = 1; // Rollback
+        }
+    }
+    else
+    {
+        // Permanent delete - remove from array
+        for (int i = index; i < db.count - 1; i++)
+        {
+            db.records[i] = db.records[i + 1];
+        }
+        db.count--;
+
+        if (save_database())
+        {
+            printf("✓ Record permanently deleted!\n");
+            printf("1 record permanently removed from database.\n");
+        }
+        else
+        {
+            printf("✗ Error saving to database.\n");
+            // Rollback is complex for permanent delete, so we'll leave it as is
+        }
+    }
+
+    pause_screen();
+}
+
+void recovery_data(void) {}
+int change_database(void)
+{
     return 1;
 }
 
