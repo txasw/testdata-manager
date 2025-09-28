@@ -1266,6 +1266,27 @@ int create_new_database_prompt(void)
     return 0;
 }
 
+int enter_manual_path_prompt(void)
+{
+    char path[MAX_PATH];
+    if (get_valid_input(path, sizeof(path), NULL, "Enter CSV file path"))
+    {
+        if (validate_csv_header(path) && load_database(path))
+        {
+            printf("✓ Database loaded successfully: %s\n", db.filename);
+            pause_screen();
+            return 1;
+        }
+        else
+        {
+            printf("✗ Invalid CSV file or header format.\n");
+            pause_screen();
+            return 0;
+        }
+    }
+    return 0;
+}
+
 int select_database(void)
 {
     clear_screen();
@@ -1295,23 +1316,8 @@ int select_database(void)
 
         if (choice == 2)
         {
-            char path[MAX_PATH];
-            if (get_valid_input(path, sizeof(path), NULL, "Enter CSV file path"))
-            {
-                if (validate_csv_header(path) && load_database(path))
-                {
-                    printf("✓ Database loaded successfully: %s\n", db.filename);
-                    pause_screen();
-                    return 1;
-                }
-                else
-                {
-                    printf("✗ Invalid CSV file or header format.\n");
-                    pause_screen();
-                    return 0;
-                }
-            }
-            return 0;
+
+            return enter_manual_path_prompt();
         }
     }
 
@@ -1340,24 +1346,7 @@ int select_database(void)
 
     if (choice == file_count + 2)
     {
-        // Manual path
-        char path[MAX_PATH];
-        if (get_valid_input(path, sizeof(path), NULL, "Enter CSV file path"))
-        {
-            if (validate_csv_header(path) && load_database(path))
-            {
-                printf("✓ Database loaded successfully: %s\n", db.filename);
-                pause_screen();
-                return 1;
-            }
-            else
-            {
-                printf("✗ Invalid CSV file or header format.\n");
-                pause_screen();
-                return 0;
-            }
-        }
-        return 0;
+        return enter_manual_path_prompt();
     }
 
     // Load selected file
