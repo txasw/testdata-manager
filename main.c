@@ -1119,6 +1119,12 @@ void recovery_data(void)
 
     // Filter deleted records
     TestRecord *deleted_records = malloc(db.count * sizeof(TestRecord));
+    if (deleted_records == NULL)
+    {
+        printf("Memory allocation failed. Unable to recover deleted records.\n");
+        pause_screen();
+        return;
+    }
     int deleted_count = 0;
 
     for (int i = 0; i < db.count; i++)
