@@ -1253,6 +1253,27 @@ void cleanup_memory(void)
     printf("Memory cleanup completed.\n");
 }
 
+#ifndef __GLIBC__
+char *strcasestr(const char *haystack, const char *needle)
+{
+    if (!haystack || !needle)
+        return NULL;
+
+    size_t needle_len = strlen(needle);
+    if (needle_len == 0)
+        return (char *)haystack;
+
+    for (const char *p = haystack; *p; p++)
+    {
+        if (strncasecmp(p, needle, needle_len) == 0)
+        {
+            return (char *)p;
+        }
+    }
+    return NULL;
+}
+#endif
+
 // Main function
 int main(void)
 {
