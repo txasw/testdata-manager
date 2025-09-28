@@ -450,6 +450,28 @@ int load_database(const char *filename)
     return 1;
 }
 
+int save_database(void)
+{
+    FILE *file = fopen(db.filename, "w");
+    if (!file)
+        return 0;
+
+    fprintf(file, "%s\n", REQUIRED_HEADER);
+
+    for (int i = 0; i < db.count; i++)
+    {
+        TestRecord *record = &db.records[i];
+        fprintf(file, "%d,%s,%s,%s,%d\n",
+                record->test_id,
+                record->system_name,
+                record->test_type,
+                test_result_to_string(record->test_result),
+                record->active);
+    }
+
+    fclose(file);
+    return 1;
+}
 
 void list_all_records(void){}
 void add_new_record(void){}
@@ -496,16 +518,6 @@ void cleanup_memory(void)
 // Main function
 int main(void)
 {
-
-    // test load database
-    if (!load_database("testdata.csv"))
-    {
-        printf("Failed to load database 'testdata.csv'.\n");
-    }
-    else
-    {
-        printf("Database 'testdata.csv' loaded successfully with %d records.\n", db.count);
-    }
     printf("╔══════════════════════════════════════════════════════════════╗\n");
     printf("║                 SYSTEM TESTING DATA MANAGER                  ║\n");
     printf("║                  ระบบจัดการข้อมูลกรทดสอบระบบ                    ║\n");
