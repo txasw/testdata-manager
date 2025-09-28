@@ -1244,6 +1244,137 @@ void recovery_data(void)
     pause_screen();
 }
 
+int select_database(void) {
+    clear_screen();
+    printf("SELECT DATABASE\n");
+    printf("===============\n");
+    
+    char files[MAX_FILES][MAX_PATH];
+    int file_count = scan_csv_files(files);
+    
+    if (file_count == 0) {
+        printf("No CSV files found in current directory.\n\n");
+        printf("Options:\n");
+        printf("1. Create new database\n");
+        printf("2. Enter manual path\n");
+        printf("3. Do nothing\n");
+        printf("\n");
+        
+        int choice = get_menu_choice(1, 3);
+        if (choice == -1 || choice == 3) return 0;
+        
+        if (choice == 1) {
+            char filename[MAX_PATH];
+            if (get_valid_input(filename, sizeof(filename), NULL, "Enter database name")) {
+                if (create_new_csv(filename)) {
+                    printf("✓ Database created successfully: %s\n", db.filename);
+                    pause_screen();
+                    return 1;
+                } else {
+                    printf("✗ Error creating database.\n");
+                    pause_screen();
+                    return 0;
+                }
+            }
+            return 0;
+        }
+        
+        if (choice == 2) {
+            char path[MAX_PATH];
+            if (get_valid_input(path, sizeof(path), NULL, "Enter CSV file path")) {
+                if (validate_csv_header(path) && load_database(path)) {
+                    printf("✓ Database loaded successfully: %s\n", db.filename);
+                    pause_screen();
+                    return 1;
+                } else {
+                    printf("✗ Invalid CSV file or header format.\n");
+                    pause_screen();
+                    return 0;
+                }
+            }
+            return 0;
+        }
+    }
+    
+    printf("Found %d CSV file(s):\n", file_count);
+    for (int i = 0; i < file_count; i++) {
+        printf("%d. %s\n", i + 1, files[i]);
+    }
+
+    printf("\nOther Options:\n");
+    
+    printf("%d. Create new database\n", file_count + 1);
+    printf("%d. Enter manual path\n", file_count + 2);
+    printf("%d. Do nothing\n", file_count + 3);
+
+    printf("\n");
+    
+    int choice = get_menu_choice(1, file_count + 3);
+    if (choice == -1 || choice == file_count + 3) return 0;
+    
+    if (choice == file_count + 1) {
+        // Create new database
+        char filename[MAX_PATH];
+        if (get_valid_input(filename, sizeof(filename), NULL, "Enter database name")) {
+            if (create_new_csv(filename)) {
+                printf("✓ Database created successfully: %s\n", db.filename);
+                pause_screen();
+                return 1;
+            } else {
+                printf("✗ Error creating database.\n");
+                pause_screen();
+                return 0;
+            }
+        }
+        return 0;
+    }
+    
+    if (choice == file_count + 2) {
+        // Manual path
+        char path[MAX_PATH];
+        if (get_valid_input(path, sizeof(path), NULL, "Enter CSV file path")) {
+            if (validate_csv_header(path) && load_database(path)) {
+                printf("✓ Database loaded successfully: %s\n", db.filename);
+                pause_screen();
+                return 1;
+            } else {
+                printf("✗ Invalid CSV file or header format.\n");
+                pause_screen();
+                return 0;
+            }
+        }
+        return 0;
+    }
+    
+    // Load selected file
+    char* selected_file = files[choice - 1];
+    
+    if (!validate_csv_header(selected_file)) {
+        printf("✗ Invalid header format in %s\n", selected_file);
+        printf("Required header: %s\n", REQUIRED_HEADER);
+        
+        printf("Try another file? (y/n): ");
+        char retry[10];
+        fgets(retry, sizeof(retry), stdin);
+        
+        if (retry[0] == 'y' || retry[0] == 'Y') {
+            return select_database();
+        }
+        return 0;
+    }
+    
+    if (load_database(selected_file)) {
+        printf("✓ Database loaded successfully: %s\n", db.filename);
+        printf("Records loaded: %d\n", db.count);
+        pause_screen();
+        return 1;
+    } else {
+        printf("✗ Error loading database.\n");
+        pause_screen();
+        return 0;
+    }
+}
+
 int change_database(void)
 {
     return 1;
@@ -1304,6 +1435,18 @@ int main(void)
     printf("╚══════════════════════════════════════════════════════════════╝\n\n");
 
     pause_screen();
+
+    while (!select_database())
+    {
+        printf("No database selected. Try again? (y/n): ");
+        char retry[10];
+        fgets(retry, sizeof(retry), stdin);
+        if (retry[0] != 'y' && retry[0] != 'Y')
+        {
+            printf("Exiting program. Goodbye!\n");
+            return 0;
+        }
+    }
 
     // Main application loop
     while (1)
