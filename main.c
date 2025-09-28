@@ -444,8 +444,15 @@ int load_database(const char *filename)
             record->test_result = string_to_test_result(token);
 
         token = strtok(NULL, ",");
-        if (token)
-            record->active = atoi(token);
+        if (token) {
+            char *endptr;
+            long val = strtol(token, &endptr, 10);
+            if (*endptr == '\0') {
+                record->active = (int)val;
+            } else {
+                record->active = 0;
+            }
+        }
 
         count++;
     }
