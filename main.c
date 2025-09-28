@@ -258,7 +258,7 @@ int get_menu_choice(int min, int max)
         printf("Invalid choice. Please enter a number between %d and %d.\n", min, max);
     }
 
-    printf("Maximum attempts reached. Returning to main menu.\n");
+    printf("Maximum attempts reached. Operation cancelled.\n");
     return -1;
 }
 
@@ -1474,7 +1474,8 @@ char *strcasestr(const char *haystack, const char *needle)
 // Main function
 int main(void)
 {
-    load_database("testdata.csv"); // Load a test database for demonstration
+    pause_screen();
+    clear_screen();
     printf("╔══════════════════════════════════════════════════════════════╗\n");
     printf("║                 SYSTEM TESTING DATA MANAGER                  ║\n");
     printf("║                  ระบบจัดการข้อมูลกรทดสอบระบบ                    ║\n");
