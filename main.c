@@ -26,7 +26,8 @@ typedef enum {
     FAILED = 0,
     PASSED,
     PENDING,
-    SUCCESS
+    SUCCESS,
+    INVALID_RESULT = -1
 } TestResult;
 
 // Data Structure
@@ -71,6 +72,9 @@ void display_welcome_message(void);
 void clear_screen(void);
 void pause_screen(void);
 
+// Utility functions
+const char *test_result_to_string(TestResult result);
+TestResult string_to_test_result(const char *str);
 
 // Memory management
 void cleanup_memory(void);
@@ -354,6 +358,146 @@ int create_new_csv(const char *filename)
     return 1;
 }
 
+const char *test_result_to_string(TestResult result)
+{
+    switch (result)
+    {
+    case FAILED:
+        return "Failed";
+    case PASSED:
+        return "Passed";
+    case PENDING:
+        return "Pending";
+    case SUCCESS:
+        return "Success";
+    default:
+        return "Unknown";
+    }
+}
+
+TestResult string_to_test_result(const char *str)
+{
+    if (!str)
+        return INVALID_RESULT;
+    if (strcasecmp(str, "Failed") == 0)
+        return FAILED;
+    if (strcasecmp(str, "Passed") == 0)
+        return PASSED;
+    if (strcasecmp(str, "Pending") == 0)
+        return PENDING;
+    if (strcasecmp(str, "Success") == 0)
+        return SUCCESS;
+    return INVALID_RESULT;
+}
+
+int load_database(const char *filename)
+{
+    FILE *file = fopen(filename, "r");
+    if (!file)
+        return 0;
+
+    char line[MAX_LINE];
+    int count = 0;
+    int max_id = 0;
+
+    // Skip header
+    if (!fgets(line, sizeof(line), file))
+    {
+        fclose(file);
+        return 0;
+    }
+
+    memset(&db, 0, sizeof(db));
+
+    // Read records
+    while (fgets(line, sizeof(line), file) && count < MAX_RECORDS)
+    {
+        line[strcspn(line, "\n\r")] = '\0';
+
+        char *token = strtok(line, ",");
+        if (!token)
+            continue;
+
+        TestRecord *record = &db.records[count];
+
+        if (atoi(token) > 0)
+            record->test_id = atoi(token);
+        else
+            continue;
+
+        if (record->test_id > max_id)
+        {
+            max_id = record->test_id;
+        }
+
+        token = strtok(NULL, ",");
+        if (token) {
+            strncpy(record->system_name, token, sizeof(record->system_name) - 1);
+            record->system_name[sizeof(record->system_name) - 1] = '\0';
+        }
+
+        token = strtok(NULL, ",");
+        if (token) {
+            strncpy(record->test_type, token, sizeof(record->test_type) - 1);
+            record->test_type[sizeof(record->test_type) - 1] = '\0';
+        }
+        
+        token = strtok(NULL, ",");
+        if (token) {
+            TestResult result = string_to_test_result(token);
+            if (result == INVALID_RESULT) {
+                printf("Warning: Invalid test result '%s' in record %d, defaulting to PENDING\n", token, record->test_id);
+                record->test_result = PENDING;
+            } else {
+                record->test_result = result;
+            }
+        }
+        
+        token = strtok(NULL, ",");
+        if (token) {
+            char *endptr;
+            long val = strtol(token, &endptr, 10);
+            if (*endptr == '\0') {
+                record->active = (int)val;
+            } else {
+                record->active = 0;
+            }
+        }
+
+        count++;
+    }
+
+    fclose(file);
+    db.count = count;
+    db.next_id = max_id + 1;
+    strcpy(db.filename, filename);
+
+    return 1;
+}
+
+int save_database(void)
+{
+    FILE *file = fopen(db.filename, "w");
+    if (!file)
+        return 0;
+
+    fprintf(file, "%s\n", REQUIRED_HEADER);
+
+    for (int i = 0; i < db.count; i++)
+    {
+        TestRecord *record = &db.records[i];
+        fprintf(file, "%d,%s,%s,%s,%d\n",
+                record->test_id,
+                record->system_name,
+                record->test_type,
+                test_result_to_string(record->test_result),
+                record->active);
+    }
+
+    fclose(file);
+    return 1;
+}
+
 void list_all_records(void){}
 void add_new_record(void){}
 void search_records(void){}
@@ -388,9 +532,27 @@ void show_main_menu(void)
     printf("7. Run tests\n");
     printf("8. Exit program\n");
 }
+
+void cleanup_memory(void)
+{
+    // In this implementation, we use static arrays, so no dynamic cleanup needed
+    // But we could add any necessary cleanup here
+    printf("Memory cleanup completed.\n");
+}
+
 // Main function
 int main(void)
 {
+    // test load database function
+    if (!load_database("testdata.csv"))
+    {
+        printf("Failed to load database 'testdata.csv'. Starting with empty database.\n");
+    }
+    else
+    {
+        printf("Database 'testdata.csv' loaded successfully with %d records.\n", db.count);
+    }
+
     printf("╔══════════════════════════════════════════════════════════════╗\n");
     printf("║                 SYSTEM TESTING DATA MANAGER                  ║\n");
     printf("║                  ระบบจัดการข้อมูลกรทดสอบระบบ                    ║\n");
@@ -457,6 +619,7 @@ int main(void)
             fgets(confirm, sizeof(confirm), stdin);
             if (confirm[0] == 'y' || confirm[0] == 'Y')
             {
+                cleanup_memory();
                 printf("Thank you for using System Testing Data Manager!\n");
                 return 0;
             }
