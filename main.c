@@ -296,6 +296,26 @@ int scan_csv_files(char files[][MAX_PATH])
 }
 #endif
 
+int validate_csv_header(const char *filename)
+{
+    FILE *file = fopen(filename, "r");
+    if (!file)
+        return 0;
+
+    char line[MAX_LINE];
+    if (!fgets(line, sizeof(line), file))
+    {
+        fclose(file);
+        return 0;
+    }
+
+    line[strcspn(line, "\n\r")] = '\0';
+
+    fclose(file);
+    return strcmp(line, REQUIRED_HEADER) == 0;
+}
+
+
 void list_all_records(void){}
 void add_new_record(void){}
 void search_records(void){}
