@@ -428,12 +428,16 @@ int load_database(const char *filename)
         }
 
         token = strtok(NULL, ",");
-        if (token)
-            strcpy(record->system_name, token);
+        if (token) {
+            strncpy(record->system_name, token, sizeof(record->system_name) - 1);
+            record->system_name[sizeof(record->system_name) - 1] = '\0';
+        }
 
         token = strtok(NULL, ",");
-        if (token)
-            strcpy(record->test_type, token);
+        if (token) {
+            strncpy(record->test_type, token, sizeof(record->test_type) - 1);
+            record->test_type[sizeof(record->test_type) - 1] = '\0';
+        }
 
         token = strtok(NULL, ",");
         if (token)
@@ -522,6 +526,16 @@ void cleanup_memory(void)
 // Main function
 int main(void)
 {
+    // test load database function
+    if (!load_database("testdata.csv"))
+    {
+        printf("Failed to load database 'testdata.csv'. Starting with empty database.\n");
+    }
+    else
+    {
+        printf("Database 'testdata.csv' loaded successfully with %d records.\n", db.count);
+    }
+
     printf("╔══════════════════════════════════════════════════════════════╗\n");
     printf("║                 SYSTEM TESTING DATA MANAGER                  ║\n");
     printf("║                  ระบบจัดการข้อมูลกรทดสอบระบบ                    ║\n");
