@@ -3,6 +3,14 @@
 #include <string.h>
 #include <ctype.h>
 
+#ifdef _WIN32
+#include <windows.h>
+#include <io.h>
+#else
+#include <dirent.h>
+#include <unistd.h>
+#endif
+
 // Constants
 #define MAX_FILES 100
 #define MAX_PATH 260
@@ -235,6 +243,115 @@ int get_menu_choice(int min, int max)
 
     printf("Maximum attempts reached. Returning to main menu.\n");
     return -1;
+}
+
+#ifdef _WIN32
+int scan_csv_files(char files[][MAX_PATH])
+{
+    WIN32_FIND_DATA findFileData;
+    HANDLE hFind;
+    int count = 0;
+
+    hFind = FindFirstFile("*.csv", &findFileData);
+    if (hFind == INVALID_HANDLE_VALUE)
+    {
+        return 0;
+    }
+
+    do
+    {
+        if (count < MAX_FILES)
+        {
+            strcpy(files[count], findFileData.cFileName);
+            count++;
+        }
+    } while (FindNextFile(hFind, &findFileData) != 0 && count < MAX_FILES);
+
+    FindClose(hFind);
+    return count;
+}
+#else
+int scan_csv_files(char files[][MAX_PATH])
+{
+    DIR *dir;
+    struct dirent *entry;
+    int count = 0;
+
+    dir = opendir(".");
+    if (!dir)
+        return 0;
+
+    while ((entry = readdir(dir)) != NULL && count < MAX_FILES)
+    {
+        char *ext = strrchr(entry->d_name, '.');
+        if (ext && strcmp(ext, ".csv") == 0)
+        {
+            strcpy(files[count], entry->d_name);
+            count++;
+        }
+    }
+
+    closedir(dir);
+    return count;
+}
+#endif
+
+int validate_csv_header(const char *filename)
+{
+    FILE *file = fopen(filename, "r");
+    if (!file)
+        return 0;
+
+    char line[MAX_LINE];
+    if (!fgets(line, sizeof(line), file))
+    {
+        fclose(file);
+        return 0;
+    }
+
+    line[strcspn(line, "\n\r")] = '\0';
+
+    fclose(file);
+    return strcmp(line, REQUIRED_HEADER) == 0;
+}
+
+int create_new_csv(const char *filename)
+{
+    char full_filename[MAX_PATH];
+
+    // Add .csv extension if not present
+    if (strstr(filename, ".csv") == NULL)
+    {
+        snprintf(full_filename, sizeof(full_filename), "%s.csv", filename);
+    }
+    else
+    {
+        strcpy(full_filename, filename);
+    }
+
+    // check if file exists
+#ifdef _WIN32
+    if (_access(full_filename, 0) != -1)
+#else
+    if (access(full_filename, F_OK) != -1)
+#endif
+    {
+        printf("File '%s' already exists. Choose a different name.\n", full_filename);
+        return 0;
+    }
+
+    FILE *file = fopen(full_filename, "w");
+    if (!file)
+        return 0;
+
+    fprintf(file, "%s\n", REQUIRED_HEADER);
+    fclose(file);
+
+    strcpy(db.filename, full_filename);
+    db.count = 0;
+    db.next_id = 1;
+
+    return 1;
 }
 
 void list_all_records(void){}
