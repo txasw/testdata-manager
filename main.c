@@ -528,7 +528,7 @@ void display_welcome_message(void)
     printf("║                    SYSTEM TESTING DATA MANAGER               ║\n");
     printf("║                     ระบบจัดการข้อมูลการทดสอบระบบ                ║\n");
     printf("╠══════════════════════════════════════════════════════════════╣\n");
-    printf("║ Current Database: %-42s ║\n", "None");
+    printf("║ Current Database: %-42s ║\n", db.filename);
     printf("╚══════════════════════════════════════════════════════════════╝\n\n");
 }
 
