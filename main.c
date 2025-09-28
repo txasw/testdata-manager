@@ -72,6 +72,13 @@ void display_welcome_message(void);
 void clear_screen(void);
 void pause_screen(void);
 
+// Input validation
+int validate_system_name(const char *input);
+int validate_test_type(const char *input);
+char *trim_string(char *str);
+int get_valid_input(char *buffer, int max_len, int (*validator)(const char *), const char *prompt);
+int get_menu_choice(int min, int max);
+
 // Utility functions
 const char *test_result_to_string(TestResult result);
 TestResult string_to_test_result(const char *str);
