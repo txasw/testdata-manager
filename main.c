@@ -57,6 +57,13 @@ int create_new_csv(const char* filename);
 int load_database(const char* filename);
 int save_database(void);
 
+// Input validation
+int validate_system_name(const char *input);
+int validate_test_type(const char *input);
+char *trim_string(char *str);
+int get_valid_input(char *buffer, int max_len, int (*validator)(const char *), const char *prompt);
+int get_menu_choice(int min, int max);
+
 // CRUD operations
 void list_all_records(void);
 void add_new_record(void);
@@ -71,13 +78,6 @@ void display_records_paginated(TestRecord* records, int count, const char* title
 void display_welcome_message(void);
 void clear_screen(void);
 void pause_screen(void);
-
-// Input validation
-int validate_system_name(const char *input);
-int validate_test_type(const char *input);
-char *trim_string(char *str);
-int get_valid_input(char *buffer, int max_len, int (*validator)(const char *), const char *prompt);
-int get_menu_choice(int min, int max);
 
 // Utility functions
 const char *test_result_to_string(TestResult result);
@@ -505,15 +505,6 @@ int save_database(void)
     return 1;
 }
 
-void list_all_records(void){}
-void add_new_record(void){}
-void search_records(void){}
-void update_record(void){}
-void recovery_data(void){}
-int change_database(void){
-    return 1;
-}
-
 void display_welcome_message(void)
 {
     clear_screen();
@@ -523,6 +514,117 @@ void display_welcome_message(void)
     printf("╠══════════════════════════════════════════════════════════════╣\n");
     printf("║ Current Database: %-42s ║\n", "None");
     printf("╚══════════════════════════════════════════════════════════════╝\n\n");
+}
+
+void display_record(const TestRecord *record, int index)
+{
+    if (!record)
+        return;
+
+    printf("│ %-3d │ %-6d │ %-15s │ %-12s │ %-8s │ %-6s │\n",
+           index + 1,
+           record->test_id,
+           record->system_name,
+           record->test_type,
+           test_result_to_string(record->test_result),
+           record->active ? "Active" : "Deleted");
+}
+
+void display_records_paginated(TestRecord *records, int count, const char *title)
+{
+    if (count == 0)
+    {
+        printf("No records found.\n");
+        return;
+    }
+
+    printf("\n%s (Total: %d records)\n", title, count);
+    printf("┌─────┬────────┬─────────────────┬──────────────┬──────────┬────────┐\n");
+    printf("│ No. │ TestID │ SystemName      │ TestType     │ Result   │ Status │\n");
+    printf("├─────┼────────┼─────────────────┼──────────────┼──────────┼────────┤\n");
+
+    if (count > PAGINATION_SIZE)
+    {
+        printf("Large dataset detected (%d records). Display all? (y/n): ", count);
+        char choice[10];
+        fgets(choice, sizeof(choice), stdin);
+
+        if (choice[0] != 'y' && choice[0] != 'Y')
+        {
+            // Paginated display
+            int page = 0;
+            int total_pages = (count + PAGINATION_SIZE - 1) / PAGINATION_SIZE;
+
+            while (1)
+            {
+                int start = page * PAGINATION_SIZE;
+                int end = (start + PAGINATION_SIZE < count) ? start + PAGINATION_SIZE : count;
+
+                for (int i = start; i < end; i++)
+                {
+                    display_record(&records[i], i);
+                }
+
+                printf("└─────┴────────┴─────────────────┴──────────────┴──────────┴────────┘\n");
+                printf("Page %d of %d | (p)revious (n)ext (q)uit: ", page + 1, total_pages);
+
+                char nav[10];
+                fgets(nav, sizeof(nav), stdin);
+
+                if (nav[0] == 'q' || nav[0] == 'Q')
+                    break;
+                if (nav[0] == 'n' || nav[0] == 'N')
+                {
+                    page = (page + 1) % total_pages;
+                }
+                if (nav[0] == 'p' || nav[0] == 'P')
+                {
+                    page = (page - 1 + total_pages) % total_pages;
+                }
+
+                printf("┌─────┬────────┬─────────────────┬──────────────┬──────────┬────────┐\n");
+                printf("│ No. │ TestID │ SystemName      │ TestType     │ Result   │ Status │\n");
+                printf("├─────┼────────┼─────────────────┼──────────────┼──────────┼────────┤\n");
+            }
+            return;
+        }
+    }
+
+    // Display all records
+    for (int i = 0; i < count; i++)
+    {
+        display_record(&records[i], i);
+    }
+    printf("└─────┴────────┴─────────────────┴──────────────┴──────────┴────────┘\n");
+}
+
+void list_all_records(void){
+    clear_screen();
+    printf("LIST ALL ACTIVE RECORDS\n");
+    printf("========================\n");
+
+    // Filter active records
+    TestRecord *active_records = malloc(db.count * sizeof(TestRecord));
+    int active_count = 0;
+
+    for (int i = 0; i < db.count; i++)
+    {
+        if (db.records[i].active)
+        {
+            active_records[active_count++] = db.records[i];
+        }
+    }
+
+    display_records_paginated(active_records, active_count, "Active Records");
+    free(active_records);
+    pause_screen();
+}
+void add_new_record(void){}
+void search_records(void){}
+void update_record(void){}
+void recovery_data(void){}
+int change_database(void){
+    return 1;
 }
 
 void show_main_menu(void)
@@ -550,16 +652,7 @@ void cleanup_memory(void)
 // Main function
 int main(void)
 {
-    // test load database function
-    if (!load_database("testdata.csv"))
-    {
-        printf("Failed to load database 'testdata.csv'. Starting with empty database.\n");
-    }
-    else
-    {
-        printf("Database 'testdata.csv' loaded successfully with %d records.\n", db.count);
-    }
-
+    load_database("testdata.csv"); // Load a test database for demonstration
     printf("╔══════════════════════════════════════════════════════════════╗\n");
     printf("║                 SYSTEM TESTING DATA MANAGER                  ║\n");
     printf("║                  ระบบจัดการข้อมูลกรทดสอบระบบ                    ║\n");
