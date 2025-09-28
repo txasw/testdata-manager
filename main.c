@@ -639,6 +639,12 @@ void list_all_records(void)
 
     // Filter active records
     TestRecord *active_records = malloc(db.count * sizeof(TestRecord));
+    if (active_records == NULL)
+    {
+        fprintf(stderr, "Error: Unable to allocate memory for active records.\n");
+        pause_screen();
+        return;
+    }
     int active_count = 0;
 
     for (int i = 0; i < db.count; i++)
