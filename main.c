@@ -1699,7 +1699,13 @@ void test_crud_operations(void)
     printf("Running CRUD Operations Tests...\n");
 
     // Save original database state
-    Database original_db = db;
+    Database *original_db = malloc(sizeof(Database));
+    if (!original_db)
+    {
+        printf("Error: Unable to allocate memory for database backup.\n");
+        return;
+    }
+    *original_db = db;
 
     // Initialize test database
     memset(&db, 0, sizeof(db));
@@ -1779,12 +1785,11 @@ void test_crud_operations(void)
     printf("Testing database bounds checking...\n");
 
     // Test maximum records limit
-    Database test_db = {0};
-    test_db.count = MAX_RECORDS;
-    assert(test_db.count == MAX_RECORDS);
+    int test_count = MAX_RECORDS;
+    assert(test_count == MAX_RECORDS);
 
     // Test that we don't exceed maximum
-    if (test_db.count >= MAX_RECORDS)
+    if (test_count >= MAX_RECORDS)
     {
         // Should not add more records
         printf("✓ Maximum records limit properly enforced\n");
@@ -1823,7 +1828,8 @@ void test_crud_operations(void)
     printf("✓ memory safety tests passed\n");
 
     // Restore original database state
-    db = original_db;
+    db = *original_db;
+    free(original_db);
 
     printf("\nAll CRUD Operations Tests PASSED!\n");
     printf("Total test categories: 6\n");
@@ -1873,7 +1879,13 @@ void run_e2e_tests(void)
     printf("Starting End-to-End testing...\n\n");
 
     // Save original database state
-    Database original_db = db;
+    Database *original_db = malloc(sizeof(Database));
+    if (!original_db)
+    {
+        printf("Error: Unable to allocate memory for database backup.\n");
+        return;
+    }
+    *original_db = db;
 
     printf("E2E Test 1: Complete Database Workflow\n");
     printf("─────────────────────────────────────────────\n");
@@ -2052,7 +2064,8 @@ void run_e2e_tests(void)
     printf("✓ Memory management working correctly\n");
 
     // Restore original database state
-    db = original_db;
+    db = *original_db;
+    free(original_db);
 
     printf("\n╔══════════════════════════════════════════════════════════════╗\n");
     printf("║                    E2E TEST SUMMARY                          ║\n");
