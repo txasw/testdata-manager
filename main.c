@@ -204,8 +204,8 @@ int validate_test_id(const char *input)
     if (!input)
         return 0;
 
-    char *original = malloc(strlen(input) + 1);
-    strcpy(original, input);
+    char *original = strdup(input);
+    if (!original) return 0;
     char *trimmed = trim_string(original);
 
     if (strlen(trimmed) == 0)
@@ -302,7 +302,7 @@ int get_valid_input(char *buffer, int max_len, int (*validator)(const char *), c
             continue;
         }
 
-        if (validator && !validator(buffer))
+        if (validator != NULL && !validator(buffer))
         {
             attempts++;
             printf("Invalid input format. Please try again.\n");
@@ -1451,11 +1451,7 @@ int select_database(void)
         printf("✗ Invalid header format in %s\n", selected_file);
         printf("Required header: %s\n", REQUIRED_HEADER);
 
-        printf("Try another file? (y/n): ");
-        char retry[10];
-        fgets(retry, sizeof(retry), stdin);
-
-        if (retry[0] == 'y' || retry[0] == 'Y')
+        if (get_yes_no("Try another file?", 0, 1))
         {
             return select_database();
         }
