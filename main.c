@@ -17,7 +17,7 @@
 #define MAX_LINE 1024
 #define MAX_RECORDS 10000
 #define MAX_ATTEMPTS 3
-#define PAGINATION_SIZE 50
+#define PAGINATION_SIZE 20
 #define MIN_NAME_LENGTH 3
 #define REQUIRED_HEADER "TestID,SystemName,TestType,TestResult,Active"
 
@@ -63,6 +63,8 @@ int save_database(void);
 // Input validation
 int validate_system_name(const char *input);
 int validate_test_type(const char *input);
+int validate_test_id(const char *input);
+int get_yes_no(const char *input, int default_answer, int max_attempts);
 char *trim_string(char *str);
 int get_valid_input(char *buffer, int max_len, int (*validator)(const char *), const char *prompt);
 int get_menu_choice(int min, int max);
@@ -72,6 +74,7 @@ void list_all_records(void);
 void add_new_record(void);
 void search_records(void);
 void update_record(void);
+void update_record_by_id(int test_id);
 void delete_record(int test_id, int soft_delete);
 void recovery_data(void);
 
@@ -196,6 +199,85 @@ int validate_test_type(const char *input)
     return 1;
 }
 
+int validate_test_id(const char *input)
+{
+    if (!input)
+        return 0;
+
+    char *original = strdup(input);
+    if (!original) return 0;
+    char *trimmed = trim_string(original);
+
+    if (strlen(trimmed) == 0)
+    {
+        free(original);
+        return 0;
+    }
+
+    char *endptr;
+    long val = strtol(trimmed, &endptr, 10);
+    if (*endptr != '\0' || val <= 0)
+    {
+        free(original);
+        return 0;
+    }
+
+    free(original);
+    return 1;
+}
+
+int get_yes_no(const char *prompt, int default_answer, int max_attempts)
+{
+    char input[10];
+    int attempts = 0;
+    max_attempts = (max_attempts >= 1) ? max_attempts : 1;
+
+    do
+    {
+        printf("%s (y/n): ", prompt);
+        if (!fgets(input, sizeof(input), stdin))
+        {
+            attempts++;
+            printf("Error reading input. Please try again.\n");
+            continue;
+        }
+
+        input[strcspn(input, "\n")] = '\0';
+        char *trimmed = trim_string(input);
+
+        if (strlen(trimmed) == 0)
+        {
+            if (max_attempts == 1)
+            {
+                printf("Defaulting to %s.\n", default_answer ? "yes" : "no");
+                return default_answer;
+            }
+            attempts++;
+            printf("Empty input detected. Please try again.\n");
+            continue;
+        }
+
+        char c = tolower(trimmed[0]);
+        if (c == 'y')
+            return 1;
+        if (c == 'n')
+            return 0;
+
+        if (max_attempts == 1)
+        {
+            printf("Defaulting to %s.\n", default_answer ? "yes" : "no");
+            return default_answer;
+        }
+
+        attempts++;
+        printf("Invalid input '%s'. Please enter 'y' for yes or 'n' for no.\n", trimmed);
+
+    } while (attempts < max_attempts);
+
+    printf("Maximum attempts reached. Defaulting to %s.\n", default_answer ? "yes" : "no");
+    return default_answer;
+}
+
 int get_valid_input(char *buffer, int max_len, int (*validator)(const char *), const char *prompt)
 {
     int attempts = 0;
@@ -220,7 +302,7 @@ int get_valid_input(char *buffer, int max_len, int (*validator)(const char *), c
             continue;
         }
 
-        if (validator && !validator(buffer))
+        if (validator != NULL && !validator(buffer))
         {
             attempts++;
             printf("Invalid input format. Please try again.\n");
@@ -231,6 +313,7 @@ int get_valid_input(char *buffer, int max_len, int (*validator)(const char *), c
     }
 
     printf("Maximum attempts reached. Operation cancelled.\n");
+    pause_screen();
     return 0;
 }
 
@@ -261,6 +344,7 @@ int get_menu_choice(int min, int max)
     }
 
     printf("Maximum attempts reached. Operation cancelled.\n");
+    pause_screen();
     return -1;
 }
 
@@ -539,7 +623,7 @@ void display_record(const TestRecord *record, int index)
     if (!record)
         return;
 
-    printf("│ %-3d │ %-6d │ %-15s │ %-12s │ %-8s │ %-6s │\n",
+    printf("│ %-3d │ %-6d │ %-30s │ %-25s │ %-8s │ %-7s │\n",
            index + 1,
            record->test_id,
            record->system_name,
@@ -555,19 +639,9 @@ void display_records_paginated(TestRecord *records, int count, const char *title
         printf("No records found.\n");
         return;
     }
-
-    printf("\n%s (Total: %d records)\n", title, count);
-    printf("┌─────┬────────┬─────────────────┬──────────────┬──────────┬────────┐\n");
-    printf("│ No. │ TestID │ SystemName      │ TestType     │ Result   │ Status │\n");
-    printf("├─────┼────────┼─────────────────┼──────────────┼──────────┼────────┤\n");
-
     if (count > PAGINATION_SIZE)
     {
-        printf("Large dataset detected (%d records). Display all? (y/n): ", count);
-        char choice[10];
-        fgets(choice, sizeof(choice), stdin);
-
-        if (choice[0] != 'y' && choice[0] != 'Y')
+        if (!get_yes_no("Large dataset detected. Display all?", 1, 1))
         {
             // Paginated display
             int page = 0;
@@ -575,6 +649,10 @@ void display_records_paginated(TestRecord *records, int count, const char *title
 
             while (1)
             {
+                clear_screen();
+                printf("┌─────┬────────┬────────────────────────────────┬───────────────────────────┬──────────┬─────────┐\n");
+                printf("│ No. │ TestID │ SystemName                     │ TestType                  │ Result   │ Status  │\n");
+                printf("├─────┼────────┼────────────────────────────────┼───────────────────────────┼──────────┼─────────┤\n");
                 int start = page * PAGINATION_SIZE;
                 int end = (start + PAGINATION_SIZE < count) ? start + PAGINATION_SIZE : count;
 
@@ -583,7 +661,7 @@ void display_records_paginated(TestRecord *records, int count, const char *title
                     display_record(&records[i], i);
                 }
 
-                printf("└─────┴────────┴─────────────────┴──────────────┴──────────┴────────┘\n");
+                printf("└─────┴────────┴────────────────────────────────┴───────────────────────────┴──────────┴─────────┘\n");
                 printf("Page %d of %d | (p)revious (n)ext (q)uit: ", page + 1, total_pages);
 
                 char nav[10];
@@ -599,21 +677,27 @@ void display_records_paginated(TestRecord *records, int count, const char *title
                 {
                     page = (page - 1 + total_pages) % total_pages;
                 }
-
-                printf("┌─────┬────────┬─────────────────┬──────────────┬──────────┬────────┐\n");
-                printf("│ No. │ TestID │ SystemName      │ TestType     │ Result   │ Status │\n");
-                printf("├─────┼────────┼─────────────────┼──────────────┼──────────┼────────┤\n");
+                if (nav[0] == '\n')
+                {
+                    page = (page + 1) % total_pages;
+                }
             }
             return;
         }
+        clear_screen();
     }
+    clear_screen();
+    printf("\n%s (Total: %d records)\n", title, count);
+    printf("┌─────┬────────┬────────────────────────────────┬───────────────────────────┬──────────┬─────────┐\n");
+    printf("│ No. │ TestID │ SystemName                     │ TestType                  │ Result   │ Status  │\n");
+    printf("├─────┼────────┼────────────────────────────────┼───────────────────────────┼──────────┼─────────┤\n");
 
     // Display all records
     for (int i = 0; i < count; i++)
     {
         display_record(&records[i], i);
     }
-    printf("└─────┴────────┴─────────────────┴──────────────┴──────────┴────────┘\n");
+    printf("└─────┴────────┴────────────────────────────────┴───────────────────────────┴──────────┴─────────┘\n");
 }
 
 int find_record_by_id(int test_id)
@@ -691,7 +775,7 @@ void add_new_record(void)
 
     // Get Test Type
     if (!get_valid_input(buffer, sizeof(buffer), validate_test_type,
-                         "Enter Test Type (min 3 chars, alphanumeric only)"))
+                         "\nEnter Test Type (min 3 chars, alphanumeric only)"))
     {
         return;
     }
@@ -812,19 +896,14 @@ void search_records(void)
         return;
     }
 
-    printf("Enter TestID from search results: ");
-    int test_id;
-    if (scanf("%d", &test_id) != 1)
+    char input_buffer[20];
+    if (!get_valid_input(input_buffer, sizeof(input_buffer), validate_test_id, "Enter TestID from search results"))
     {
-        printf("Invalid TestID.\n");
         free(results);
-        while (getchar() != '\n')
-            ; // Clear input buffer
-        pause_screen();
         return;
     }
-    while (getchar() != '\n')
-        ; // Clear input buffer
+
+    int test_id = atoi(trim_string(input_buffer));
 
     // Verify TestID is in search results
     int found = 0;
@@ -853,13 +932,14 @@ void search_records(void)
         int index = find_record_by_id(test_id);
         if (index != -1)
         {
-            printf("\n--- Record to Update ---\n");
+            clear_screen();
+            printf("--- Record to Update ---\n");
             printf("TestID: %d\n", db.records[index].test_id);
             printf("SystemName: %s\n", db.records[index].system_name);
             printf("TestType: %s\n", db.records[index].test_type);
             printf("TestResult: %s\n", test_result_to_string(db.records[index].test_result));
 
-            update_record();
+            update_record_by_id(test_id);
         }
     }
     else if (action == 2)
@@ -870,19 +950,21 @@ void search_records(void)
 
 void update_record(void)
 {
-    printf("Enter TestID to update: ");
-    int test_id;
-    if (scanf("%d", &test_id) != 1)
+    clear_screen();
+    printf("UPDATE RECORD\n");
+    printf("==============\n");
+    char input_buffer[20];
+    if (!get_valid_input(input_buffer, sizeof(input_buffer), validate_test_id, "Enter TestID to update"))
     {
-        printf("Invalid TestID.\n");
-        while (getchar() != '\n')
-            ;
-        pause_screen();
         return;
     }
-    while (getchar() != '\n')
-        ;
+    int test_id = atoi(trim_string(input_buffer));
 
+    update_record_by_id(test_id);
+}
+
+void update_record_by_id(int test_id)
+{
     int index = find_record_by_id(test_id);
     if (index == -1 || !db.records[index].active)
     {
@@ -894,16 +976,21 @@ void update_record(void)
     TestRecord *record = &db.records[index];
     TestRecord backup = *record; // Backup for rollback
 
-    printf("\n--- Current Record ---\n");
-    printf("TestID: %d\n", record->test_id);
-    printf("SystemName: %s\n", record->system_name);
-    printf("TestType: %s\n", record->test_type);
-    printf("TestResult: %s\n", test_result_to_string(record->test_result));
+    clear_screen();
+    printf("You are about to modify the following record:\n");
+    printf("┌────────┬────────────────────────────────┬───────────────────────────┬──────────┐\n");
+    printf("│ TestID │ SystemName                     │ TestType                  │ Result   │\n");
+    printf("├────────┼────────────────────────────────┼───────────────────────────┼──────────┤\n");
+    printf("│ %-6d │ %-30s │ %-25s │ %-8s │\n", record->test_id, record->system_name, record->test_type,
+           test_result_to_string(record->test_result));
+    printf("└────────┴────────────────────────────────┴───────────────────────────┴──────────┘\n");
 
     printf("\nSelect action:\n");
     printf("1. Update record\n");
     printf("2. Delete record\n");
     printf("3. Return to menu\n");
+
+    printf("\n");
 
     int action = get_menu_choice(1, 3);
     if (action == -1 || action == 3)
@@ -920,18 +1007,24 @@ void update_record(void)
 
     while (1)
     {
-        printf("\n--- Current Record (Unsaved) ---\n");
-        printf("TestID: %d\n", record->test_id);
-        printf("SystemName: %s\n", record->system_name);
-        printf("TestType: %s\n", record->test_type);
-        printf("TestResult: %s\n", test_result_to_string(record->test_result));
+        clear_screen();
+        printf("--- Current Record (Unsaved) ---\n");
+        printf("┌────────┬────────────────────────────────┬───────────────────────────┬──────────┐\n");
+        printf("│ TestID │ SystemName                     │ TestType                  │ Result   │\n");
+        printf("├────────┼────────────────────────────────┼───────────────────────────┼──────────┤\n");
+        printf("│ %-6d │ %-30s │ %-25s │ %-8s │\n", record->test_id, record->system_name, record->test_type,
+               test_result_to_string(record->test_result));
+        printf("└────────┴────────────────────────────────┴───────────────────────────┴──────────┘\n");
 
         printf("\nSelect field to update:\n");
         printf("1. SystemName\n");
         printf("2. TestType\n");
         printf("3. TestResult\n");
+        printf("\nOther Options:\n");
         printf("4. Save changes\n");
         printf("5. Cancel (discard changes)\n");
+
+        printf("\n");
 
         int field_choice = get_menu_choice(1, 5);
         if (field_choice == -1)
@@ -939,10 +1032,7 @@ void update_record(void)
 
         if (field_choice == 5)
         {
-            printf("Discard all changes? (y/n): ");
-            char confirm[10];
-            fgets(confirm, sizeof(confirm), stdin);
-            if (confirm[0] == 'y' || confirm[0] == 'Y')
+            if (get_yes_no("Discard all changes?", 0, 1))
             {
                 *record = backup; // Restore backup
                 printf("Changes discarded.\n");
@@ -1057,18 +1147,18 @@ void delete_record(int test_id, int soft_delete)
         return;
     }
 
-    printf("\n--- Record to %s ---\n", soft_delete ? "Delete" : "Permanently Delete");
-    printf("TestID: %d\n", record->test_id);
-    printf("SystemName: %s\n", record->system_name);
-    printf("TestType: %s\n", record->test_type);
-    printf("TestResult: %s\n", test_result_to_string(record->test_result));
+    clear_screen();
+    printf("You are about to %s the following record:\n", soft_delete ? "delete" : "permanently delete");
+    printf("┌────────┬────────────────────────────────┬───────────────────────────┬──────────┐\n");
+    printf("│ TestID │ SystemName                     │ TestType                  │ Result   │\n");
+    printf("├────────┼────────────────────────────────┼───────────────────────────┼──────────┤\n");
+    printf("│ %-6d │ %-30s │ %-25s │ %-8s │\n", record->test_id, record->system_name, record->test_type,
+           test_result_to_string(record->test_result));
+    printf("└────────┴────────────────────────────────┴───────────────────────────┴──────────┘\n");
 
-    printf("\nAre you sure you want to %s this record? (y/n): ",
-           soft_delete ? "delete" : "permanently delete");
-    char confirm[10];
-    fgets(confirm, sizeof(confirm), stdin);
+    printf("\n");
 
-    if (confirm[0] != 'y' && confirm[0] != 'Y')
+    if (!get_yes_no(soft_delete ? "Are you sure you want to delete this record?" : "Are you sure you want to permanently delete this record?", 0, 3))
     {
         printf("Operation cancelled.\n");
         pause_screen();
@@ -1109,8 +1199,8 @@ void delete_record(int test_id, int soft_delete)
             // Rollback is complex for permanent delete, so we'll leave it as is
         }
     }
-
     pause_screen();
+
 }
 
 void recovery_data(void)
@@ -1152,6 +1242,8 @@ void recovery_data(void)
     printf("2. Permanently delete a record\n");
     printf("3. Return to main menu\n");
 
+    printf("\n");
+
     int action = get_menu_choice(1, 3);
     if (action == -1 || action == 3)
     {
@@ -1162,18 +1254,13 @@ void recovery_data(void)
     int attempts = 0;
     while (attempts < MAX_ATTEMPTS)
     {
-        printf("Enter TestID: ");
-        int test_id;
-        if (scanf("%d", &test_id) != 1)
+        char input_buffer[20];
+        if (!get_valid_input(input_buffer, sizeof(input_buffer), validate_test_id, "Enter TestID"))
         {
-            attempts++;
-            printf("Invalid input. Please enter a valid TestID.\n");
-            while (getchar() != '\n')
-                ;
-            continue;
+            free(deleted_records);
+            return;
         }
-        while (getchar() != '\n')
-            ;
+        int test_id = atoi(trim_string(input_buffer));
 
         int index = find_record_by_id(test_id);
         if (index == -1 || db.records[index].active)
@@ -1185,19 +1272,18 @@ void recovery_data(void)
 
         // Show the record
         TestRecord *record = &db.records[index];
-        printf("\n--- Record Found ---\n");
-        printf("TestID: %d\n", record->test_id);
-        printf("SystemName: %s\n", record->system_name);
-        printf("TestType: %s\n", record->test_type);
-        printf("TestResult: %s\n", test_result_to_string(record->test_result));
+        clear_screen();
+        printf("You are about to %s the following record:\n", action == 1 ? "recover" : "permanently delete");
+        printf("┌────────┬────────────────────────────────┬───────────────────────────┬──────────┐\n");
+        printf("│ TestID │ SystemName                     │ TestType                  │ Result   │\n");
+        printf("├────────┼────────────────────────────────┼───────────────────────────┼──────────┤\n");
+        printf("│ %-6d │ %-30s │ %-25s │ %-8s │\n", record->test_id, record->system_name, record->test_type,
+               test_result_to_string(record->test_result));
+        printf("└────────┴────────────────────────────────┴───────────────────────────┴──────────┘\n");
 
         if (action == 1)
         {
-            printf("\nConfirm recovery of this record? (y/n): ");
-            char confirm[10];
-            fgets(confirm, sizeof(confirm), stdin);
-
-            if (confirm[0] == 'y' || confirm[0] == 'Y')
+            if (get_yes_no("Confirm recovery of this record?", 0, 3))
             {
                 record->active = 1;
                 if (save_database())
@@ -1219,21 +1305,28 @@ void recovery_data(void)
         else if (action == 2)
         {
             printf("\n⚠️  WARNING: This will permanently delete the record.\n");
-            printf("Type the TestID again to confirm permanent deletion: ");
 
-            int confirm_id;
-            if (scanf("%d", &confirm_id) != 1 || confirm_id != test_id)
+            char confirm_input[20];
+            char expected_id[20];
+            snprintf(expected_id, sizeof(expected_id), "%d", test_id);
+
+            if (!get_valid_input(confirm_input, sizeof(confirm_input), NULL,
+                                 "Type the TestID again to confirm permanent deletion"))
             {
-                printf("TestID mismatch. Operation cancelled.\n");
-                while (getchar() != '\n')
-                    ;
+                free(deleted_records);
+                return;
+            }
+
+            if (strcmp(trim_string(confirm_input), expected_id) == 0)
+            {
+                delete_record(test_id, 0);
+                free(deleted_records);
+                return;
             }
             else
             {
-                delete_record(test_id, 0);
+                printf("TestID mismatch. Operation cancelled.\n");
             }
-            while (getchar() != '\n')
-                ;
         }
 
         free(deleted_records);
@@ -1358,11 +1451,7 @@ int select_database(void)
         printf("✗ Invalid header format in %s\n", selected_file);
         printf("Required header: %s\n", REQUIRED_HEADER);
 
-        printf("Try another file? (y/n): ");
-        char retry[10];
-        fgets(retry, sizeof(retry), stdin);
-
-        if (retry[0] == 'y' || retry[0] == 'Y')
+        if (get_yes_no("Try another file?", 0, 1))
         {
             return select_database();
         }
@@ -1386,13 +1475,9 @@ int select_database(void)
 
 int change_database(void)
 {
-    printf("Current database will be closed. Continue? (y/n): ");
-    char confirm[10];
-    fgets(confirm, sizeof(confirm), stdin);
-
-    if (confirm[0] != 'y' && confirm[0] != 'Y')
+    if (!get_yes_no("Current database will be closed. Continue?", 0, 1))
     {
-        return 1;
+        return 0;
     }
 
     if (select_database())
@@ -1466,10 +1551,7 @@ int main(void)
 
     while (!select_database())
     {
-        printf("No database selected. Try again? (y/n): ");
-        char retry[10];
-        fgets(retry, sizeof(retry), stdin);
-        if (retry[0] != 'y' && retry[0] != 'Y')
+        if (!get_yes_no("No database selected. Try again?", 0, 1))
         {
             printf("Exiting program. Goodbye!\n");
             return 0;
@@ -1484,8 +1566,6 @@ int main(void)
         int choice = get_menu_choice(1, 8);
         if (choice == -1)
         {
-
-            pause_screen();
             continue;
         }
 
@@ -1528,10 +1608,7 @@ int main(void)
             }
             break;
         case 8:
-            printf("Are you sure you want to exit? (y/n): ");
-            char confirm[10];
-            fgets(confirm, sizeof(confirm), stdin);
-            if (confirm[0] == 'y' || confirm[0] == 'Y')
+            if (get_yes_no("Are you sure you want to exit?", 0, 1))
             {
                 cleanup_memory();
                 printf("Thank you for using System Testing Data Manager!\n");
