@@ -1,0 +1,11 @@
+TestID,SystemName,TestType,TestResult,Active
+1,API Gateway Server,Functional,Passed,1
+2,Test-System_v1.0,Unit,Failed,0
+3,System (Main),Integration,Pending,1
+4,System[Backend],Performance,Success,1
+5,DB-Server_v2.1,Load,Passed,1
+6,Web.Server.Core,Smoke,Failed,0
+7,Mobile_App-v3.2,UI,Pending,1
+8,Cache-Layer_Redis,Memory,Success,1
+9,Auth (OAuth2.0),Security,Passed,1
+10,Data[Warehouse],ETL,Failed,0

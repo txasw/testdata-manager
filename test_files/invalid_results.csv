@@ -1,0 +1,11 @@
+TestID,SystemName,TestType,TestResult,Active
+1,ValidSystem,ValidType,InvalidResult,1
+2,ValidSystem,ValidType,PASSED,0
+3,ValidSystem,ValidType,failed,1
+4,ValidSystem,ValidType,PENDING,0
+5,ValidSystem,ValidType,success,1
+6,ValidSystem,ValidType,Pass,0
+7,ValidSystem,ValidType,Fail,1
+8,ValidSystem,ValidType,Pend,0
+9,ValidSystem,ValidType,Succ,1
+10,ValidSystem,ValidType,,0

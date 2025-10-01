@@ -1,0 +1,6 @@
+TestID,SystemName,TestType,TestResult,Active
+1,UnicodeSystem🚀,UnicodeTest💯,Passed,1
+2,ÄÖÜßSystem,ÄÖÜTest,Failed,0
+3,中文系统,中文测试,Pending,1
+4,العربيةSystem,العربيةTest,Success,0
+5,РусскийSystem,РусскийTest,Passed,1
