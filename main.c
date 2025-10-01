@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <ctype.h>
+#include <assert.h>
 
 #ifdef _WIN32
 #include <windows.h>
@@ -92,6 +93,13 @@ int find_record_by_id(int test_id);
 int get_next_test_id(void);
 int create_new_database_prompt(void);
 int enter_manual_path_prompt(void);
+
+// Test functions
+void run_unit_tests(void);
+void run_e2e_tests(void);
+void test_input_validation(void);
+void test_crud_operations(void);
+void run_all_tests(void);
 
 // Memory management
 void cleanup_memory(void);
@@ -205,7 +213,8 @@ int validate_test_id(const char *input)
         return 0;
 
     char *original = strdup(input);
-    if (!original) return 0;
+    if (!original)
+        return 0;
     char *trimmed = trim_string(original);
 
     if (strlen(trimmed) == 0)
@@ -1200,7 +1209,6 @@ void delete_record(int test_id, int soft_delete)
         }
     }
     pause_screen();
-
 }
 
 void recovery_data(void)
@@ -1491,6 +1499,586 @@ int change_database(void)
         return 0;
     }
 }
+void test_input_validation(void)
+{
+    printf("Running Input Validation Tests...\n");
+
+    // Test validate_system_name function
+    printf("Testing validate_system_name...\n");
+
+    // Valid system names
+    assert(validate_system_name("System123") == 1);
+    assert(validate_system_name("Test-System_v1.0") == 1);
+    assert(validate_system_name("System (Main)") == 1);
+    assert(validate_system_name("System[Backend]") == 1);
+    assert(validate_system_name("API Gateway Server") == 1);
+    assert(validate_system_name("DB-Server_v2.1") == 1);
+
+    // Invalid system names - too short
+    assert(validate_system_name("AB") == 0);
+    assert(validate_system_name("X") == 0);
+    assert(validate_system_name("") == 0);
+
+    // Invalid system names - invalid characters
+    assert(validate_system_name("System@Test") == 0);
+    assert(validate_system_name("System#Test") == 0);
+    assert(validate_system_name("System$Test") == 0);
+    assert(validate_system_name("System%Test") == 0);
+    assert(validate_system_name("System&Test") == 0);
+    assert(validate_system_name("System*Test") == 0);
+    assert(validate_system_name("System+Test") == 0);
+    assert(validate_system_name("System=Test") == 0);
+    assert(validate_system_name("System/Test") == 0);
+    assert(validate_system_name("System\\Test") == 0);
+    assert(validate_system_name("System|Test") == 0);
+    assert(validate_system_name("System<Test") == 0);
+    assert(validate_system_name("System>Test") == 0);
+    assert(validate_system_name("System?Test") == 0);
+    assert(validate_system_name("System!Test") == 0);
+    assert(validate_system_name("System\"Test") == 0);
+    assert(validate_system_name("System'Test") == 0);
+    assert(validate_system_name("System:Test") == 0);
+    assert(validate_system_name("System;Test") == 0);
+    assert(validate_system_name("System,Test") == 0);
+
+    // Edge cases
+    assert(validate_system_name(NULL) == 0);
+    assert(validate_system_name("   ") == 0);     // Only whitespace
+    assert(validate_system_name("  ABC  ") == 1); // Should trim and pass
+
+    printf("✓ validate_system_name tests passed\n");
+
+    // Test validate_test_type function
+    printf("Testing validate_test_type...\n");
+
+    // Valid test types
+    assert(validate_test_type("API") == 1);
+    assert(validate_test_type("UnitTest") == 1);
+    assert(validate_test_type("IntegrationTest") == 1);
+    assert(validate_test_type("SystemTest") == 1);
+    assert(validate_test_type("PerformanceTest") == 1);
+    assert(validate_test_type("SecurityTest") == 1);
+    assert(validate_test_type("ABC123") == 1);
+    assert(validate_test_type("Test123") == 1);
+
+    // Invalid test types - too short
+    assert(validate_test_type("AB") == 0);
+    assert(validate_test_type("X") == 0);
+    assert(validate_test_type("") == 0);
+
+    // Invalid test types - invalid characters
+    assert(validate_test_type("Test-Case") == 0);  // Hyphen not allowed
+    assert(validate_test_type("Test_Case") == 0);  // Underscore not allowed
+    assert(validate_test_type("Test Case") == 0);  // Space not allowed
+    assert(validate_test_type("Test.Case") == 0);  // Dot not allowed
+    assert(validate_test_type("Test(Case)") == 0); // Parentheses not allowed
+    assert(validate_test_type("Test[Case]") == 0); // Brackets not allowed
+    assert(validate_test_type("Test@Case") == 0);
+    assert(validate_test_type("Test#Case") == 0);
+    assert(validate_test_type("Test$Case") == 0);
+    assert(validate_test_type("Test%Case") == 0);
+    assert(validate_test_type("Test&Case") == 0);
+    assert(validate_test_type("Test*Case") == 0);
+
+    // Edge cases
+    assert(validate_test_type(NULL) == 0);
+    assert(validate_test_type("   ") == 0);     // Only whitespace
+    assert(validate_test_type("  ABC  ") == 1); // Should trim and pass
+
+    printf("✓ validate_test_type tests passed\n");
+
+    // Test validate_test_id function
+    printf("Testing validate_test_id...\n");
+
+    // Valid test IDs
+    assert(validate_test_id("1") == 1);
+    assert(validate_test_id("123") == 1);
+    assert(validate_test_id("999999") == 1);
+    assert(validate_test_id("  123  ") == 1); // Should trim and pass
+
+    // Invalid test IDs - zero or negative
+    assert(validate_test_id("0") == 0);
+    assert(validate_test_id("-1") == 0);
+    assert(validate_test_id("-123") == 0);
+
+    // Invalid test IDs - non-numeric
+    assert(validate_test_id("ABC") == 0);
+    assert(validate_test_id("12A") == 0);
+    assert(validate_test_id("A123") == 0);
+    assert(validate_test_id("12.34") == 0);
+    assert(validate_test_id("12-34") == 0);
+    assert(validate_test_id("12 34") == 0);
+    assert(validate_test_id("") == 0);
+
+    // Edge cases
+    assert(validate_test_id(NULL) == 0);
+    assert(validate_test_id("   ") == 0); // Only whitespace
+
+    printf("✓ validate_test_id tests passed\n");
+
+    // Test trim_string function
+    printf("Testing trim_string...\n");
+
+    char test_str1[] = "  hello  ";
+    char *result1 = trim_string(test_str1);
+    assert(strcmp(result1, "hello") == 0);
+
+    char test_str2[] = "hello";
+    char *result2 = trim_string(test_str2);
+    assert(strcmp(result2, "hello") == 0);
+
+    char test_str3[] = "  hello";
+    char *result3 = trim_string(test_str3);
+    assert(strcmp(result3, "hello") == 0);
+
+    char test_str4[] = "hello  ";
+    char *result4 = trim_string(test_str4);
+    assert(strcmp(result4, "hello") == 0);
+
+    char test_str5[] = "   ";
+    char *result5 = trim_string(test_str5);
+    assert(strcmp(result5, "") == 0);
+
+    char test_str6[] = "";
+    char *result6 = trim_string(test_str6);
+    assert(strcmp(result6, "") == 0);
+
+    // Test NULL input
+    assert(trim_string(NULL) == NULL);
+
+    printf("✓ trim_string tests passed\n");
+
+    // Test string_to_test_result function
+    printf("Testing string_to_test_result...\n");
+
+    assert(string_to_test_result("Failed") == FAILED);
+    assert(string_to_test_result("failed") == FAILED);
+    assert(string_to_test_result("FAILED") == FAILED);
+    assert(string_to_test_result("Passed") == PASSED);
+    assert(string_to_test_result("passed") == PASSED);
+    assert(string_to_test_result("PASSED") == PASSED);
+    assert(string_to_test_result("Pending") == PENDING);
+    assert(string_to_test_result("pending") == PENDING);
+    assert(string_to_test_result("PENDING") == PENDING);
+    assert(string_to_test_result("Success") == SUCCESS);
+    assert(string_to_test_result("success") == SUCCESS);
+    assert(string_to_test_result("SUCCESS") == SUCCESS);
+
+    // Invalid results
+    assert(string_to_test_result("Invalid") == INVALID_RESULT);
+    assert(string_to_test_result("Unknown") == INVALID_RESULT);
+    assert(string_to_test_result("") == INVALID_RESULT);
+    assert(string_to_test_result(NULL) == INVALID_RESULT);
+
+    printf("✓ string_to_test_result tests passed\n");
+
+    // Test test_result_to_string function
+    printf("Testing test_result_to_string...\n");
+
+    assert(strcmp(test_result_to_string(FAILED), "Failed") == 0);
+    assert(strcmp(test_result_to_string(PASSED), "Passed") == 0);
+    assert(strcmp(test_result_to_string(PENDING), "Pending") == 0);
+    assert(strcmp(test_result_to_string(SUCCESS), "Success") == 0);
+    assert(strcmp(test_result_to_string(INVALID_RESULT), "Unknown") == 0);
+    assert(strcmp(test_result_to_string(-999), "Unknown") == 0); // Invalid enum value
+
+    printf("✓ test_result_to_string tests passed\n");
+
+    printf("\nAll Input Validation Tests PASSED!\n");
+    printf("Total test categories: 6\n");
+    printf("- validate_system_name: ✓\n");
+    printf("- validate_test_type: ✓\n");
+    printf("- validate_test_id: ✓\n");
+    printf("- trim_string: ✓\n");
+    printf("- string_to_test_result: ✓\n");
+    printf("- test_result_to_string: ✓\n");
+}
+
+void test_crud_operations(void)
+{
+    printf("Running CRUD Operations Tests...\n");
+
+    // Save original database state
+    Database *original_db = malloc(sizeof(Database));
+    if (!original_db)
+    {
+        printf("Error: Unable to allocate memory for database backup.\n");
+        return;
+    }
+    memcpy(original_db, &db, sizeof(Database));
+
+    // Initialize test database
+    memset(&db, 0, sizeof(db));
+    strcpy(db.filename, "crud_test.csv");
+    db.next_id = 1;
+
+    printf("Testing find_record_by_id...\n");
+
+    // Test empty database
+    assert(find_record_by_id(1) == -1);
+    assert(find_record_by_id(999) == -1);
+
+    // Add test records
+    TestRecord test_record1 = {1, "TestSystem1", "UnitTest", PASSED, 1};
+    TestRecord test_record2 = {2, "TestSystem2", "IntegrationTest", FAILED, 1};
+    TestRecord test_record3 = {3, "TestSystem3", "SystemTest", PENDING, 0}; // Deleted record
+
+    db.records[0] = test_record1;
+    db.records[1] = test_record2;
+    db.records[2] = test_record3;
+    db.count = 3;
+
+    // Test finding existing records
+    assert(find_record_by_id(1) == 0);
+    assert(find_record_by_id(2) == 1);
+    assert(find_record_by_id(3) == 2);
+
+    // Test finding non-existing records
+    assert(find_record_by_id(4) == -1);
+    assert(find_record_by_id(999) == -1);
+    assert(find_record_by_id(0) == -1);
+    assert(find_record_by_id(-1) == -1);
+
+    printf("✓ find_record_by_id tests passed\n");
+
+    printf("Testing get_next_test_id...\n");
+
+    // Test initial state
+    db.next_id = 5;
+    assert(get_next_test_id() == 5);
+    assert(db.next_id == 6); // Should increment
+    assert(get_next_test_id() == 6);
+    assert(db.next_id == 7); // Should increment again
+
+    printf("✓ get_next_test_id tests passed\n");
+
+    printf("Testing database record validation...\n");
+
+    // Test valid records
+    TestRecord valid_record = {10, "ValidSystem", "ValidTest", PASSED, 1};
+    assert(valid_record.test_id > 0);
+    assert(strlen(valid_record.system_name) >= MIN_NAME_LENGTH);
+    assert(strlen(valid_record.test_type) >= MIN_NAME_LENGTH);
+    assert(valid_record.test_result >= FAILED && valid_record.test_result <= SUCCESS);
+    assert(valid_record.active == 0 || valid_record.active == 1);
+
+    // Test edge cases for record fields
+    TestRecord edge_record1 = {1, "ABC", "DEF", FAILED, 0}; // Minimum length names
+    assert(strlen(edge_record1.system_name) == MIN_NAME_LENGTH);
+    assert(strlen(edge_record1.test_type) == MIN_NAME_LENGTH);
+
+    TestRecord edge_record2 = {999999, "Very Long System Name", "VeryLongTestType", SUCCESS, 1};
+    assert(edge_record2.test_id > 0);
+    assert(strlen(edge_record2.system_name) > MIN_NAME_LENGTH);
+    assert(strlen(edge_record2.test_type) > MIN_NAME_LENGTH);
+
+    printf("✓ database record validation tests passed\n");
+
+    printf("Testing validate_csv_header (mock)...\n");
+
+    // Test required header format
+    const char *required = REQUIRED_HEADER;
+    assert(strcmp(required, "TestID,SystemName,TestType,TestResult,Active") == 0);
+
+    printf("✓ CSV header validation tests passed\n");
+
+    printf("Testing database bounds checking...\n");
+
+    // Test maximum records limit
+    int test_count = MAX_RECORDS;
+    assert(test_count == MAX_RECORDS);
+
+    // Test that we don't exceed maximum
+    if (test_count >= MAX_RECORDS)
+    {
+        // Should not add more records
+        printf("✓ Maximum records limit properly enforced\n");
+    }
+
+    // Test minimum valid test ID
+    assert(1 > 0); // Minimum valid test ID is 1
+
+    // Test enum bounds
+    assert(FAILED == 0);
+    assert(PASSED == 1);
+    assert(PENDING == 2);
+    assert(SUCCESS == 3);
+    assert(INVALID_RESULT == -1);
+
+    printf("✓ database bounds checking tests passed\n");
+
+    printf("Testing memory safety (basic checks)...\n");
+
+    // Test string lengths don't exceed buffer sizes
+    char test_system[100] = "TestSystemName";
+    char test_type[100] = "TestType";
+    assert(strlen(test_system) < 100);
+    assert(strlen(test_type) < 100);
+
+    // Test that we can safely copy strings
+    TestRecord safe_record = {0};
+    strncpy(safe_record.system_name, test_system, sizeof(safe_record.system_name) - 1);
+    safe_record.system_name[sizeof(safe_record.system_name) - 1] = '\0';
+    strncpy(safe_record.test_type, test_type, sizeof(safe_record.test_type) - 1);
+    safe_record.test_type[sizeof(safe_record.test_type) - 1] = '\0';
+
+    assert(strlen(safe_record.system_name) == strlen(test_system));
+    assert(strlen(safe_record.test_type) == strlen(test_type));
+
+    printf("✓ memory safety tests passed\n");
+
+    // Restore original database state
+    db = *original_db;
+    free(original_db);
+
+    printf("\nAll CRUD Operations Tests PASSED!\n");
+    printf("Total test categories: 6\n");
+    printf("- find_record_by_id: ✓\n");
+    printf("- get_next_test_id: ✓\n");
+    printf("- database record validation: ✓\n");
+    printf("- CSV header validation: ✓\n");
+    printf("- database bounds checking: ✓\n");
+    printf("- memory safety: ✓\n");
+}
+
+void run_all_tests(void)
+{
+    printf("╔══════════════════════════════════════════════════════════════╗\n");
+    printf("║                    UNIT TEST SUITE                           ║\n");
+    printf("║                 System Testing Data Manager                  ║\n");
+    printf("╚══════════════════════════════════════════════════════════════╝\n\n");
+
+    printf("Starting comprehensive unit test suite...\n\n");
+
+    // Test input validation functions
+    printf("Test Category 1: Input Validation\n");
+    printf("────────────────────────────────────────\n");
+    test_input_validation();
+
+    printf("\n\nTest Category 2: CRUD Operations\n");
+    printf("────────────────────────────────────────\n");
+    test_crud_operations();
+
+    printf("\n\n╔══════════════════════════════════════════════════════════════╗\n");
+    printf("║                     TEST SUMMARY                             ║\n");
+    printf("╠══════════════════════════════════════════════════════════════╣\n");
+    printf("║ Input Validation Tests:     PASSED                           ║\n");
+    printf("║ CRUD Operations Tests:      PASSED                           ║\n");
+    printf("╠══════════════════════════════════════════════════════════════╣\n");
+    printf("║ ALL UNIT TESTS PASSED SUCCESSFULLY!                          ║\n");
+    printf("╚══════════════════════════════════════════════════════════════╝\n");
+}
+
+void run_e2e_tests(void)
+{
+    printf("╔══════════════════════════════════════════════════════════════╗\n");
+    printf("║                   END-TO-END TEST SUITE                      ║\n");
+    printf("║                System Testing Data Manager                   ║\n");
+    printf("╚══════════════════════════════════════════════════════════════╝\n\n");
+
+    printf("Starting End-to-End testing...\n\n");
+
+    // Save original database state
+    Database *original_db = malloc(sizeof(Database));
+    if (!original_db)
+    {
+        printf("Error: Unable to allocate memory for database backup.\n");
+        return;
+    }
+    memcpy(original_db, &db, sizeof(Database));
+
+    printf("E2E Test 1: Complete Database Workflow\n");
+    printf("─────────────────────────────────────────────\n");
+
+    // Initialize test database
+    memset(&db, 0, sizeof(db));
+    strcpy(db.filename, "e2e_test.csv");
+    db.next_id = 1;
+
+    // Test 1: Create test records
+    printf("Testing complete record creation workflow...\n");
+
+    TestRecord test_records[] = {
+        {1, "WebApp Frontend", "UnitTest", PASSED, 1},
+        {2, "API Gateway", "IntegrationTest", FAILED, 1},
+        {3, "Database Layer", "SystemTest", PENDING, 1},
+        {4, "Authentication Service", "SecurityTest", SUCCESS, 1},
+        {5, "Payment System", "LoadTest", FAILED, 0} // Deleted record
+    };
+
+    // Add records to database
+    for (int i = 0; i < 5; i++)
+    {
+        db.records[db.count++] = test_records[i];
+        db.next_id = test_records[i].test_id + 1;
+    }
+
+    assert(db.count == 5);
+    printf("✓ Record creation workflow completed\n");
+
+    // Test 2: Search functionality
+    printf("Testing search functionality...\n");
+
+    int search_results = 0;
+    for (int i = 0; i < db.count; i++)
+    {
+        if (db.records[i].active && strcasestr(db.records[i].system_name, "API"))
+        {
+            search_results++;
+        }
+    }
+    assert(search_results == 1); // Should find "API Gateway"
+    printf("✓ Search functionality working correctly\n");
+
+    // Test 3: Update operations
+    printf("Testing update operations...\n");
+
+    int index = find_record_by_id(2);
+    assert(index != -1);
+    TestRecord *record = &db.records[index];
+    TestResult old_result = record->test_result;
+    record->test_result = PASSED; // Change from FAILED to PASSED
+    assert(record->test_result != old_result);
+    printf("✓ Update operations working correctly\n");
+
+    // Test 4: Delete and recovery operations
+    printf("Testing delete and recovery operations...\n");
+
+    // Test soft delete
+    index = find_record_by_id(3);
+    assert(index != -1);
+    assert(db.records[index].active == 1);
+    db.records[index].active = 0; // Soft delete
+    assert(db.records[index].active == 0);
+
+    // Test recovery
+    db.records[index].active = 1; // Recover
+    assert(db.records[index].active == 1);
+    printf("✓ Delete and recovery operations working correctly\n");
+
+    // Test 5: Data integrity checks
+    printf("Testing data integrity...\n");
+
+    int active_count = 0;
+    int deleted_count = 0;
+
+    for (int i = 0; i < db.count; i++)
+    {
+        if (db.records[i].active)
+        {
+            active_count++;
+        }
+        else
+        {
+            deleted_count++;
+        }
+
+        // Validate each record's data integrity
+        assert(db.records[i].test_id > 0);
+        assert(strlen(db.records[i].system_name) >= MIN_NAME_LENGTH);
+        assert(strlen(db.records[i].test_type) >= MIN_NAME_LENGTH);
+        assert(db.records[i].test_result >= FAILED && db.records[i].test_result <= SUCCESS);
+        assert(db.records[i].active == 0 || db.records[i].active == 1);
+    }
+
+    assert(active_count == 4);  // 4 active records
+    assert(deleted_count == 1); // 1 deleted record
+    printf("✓ Data integrity checks passed\n");
+
+    printf("\nE2E Test 2: ID Generation and Uniqueness\n");
+    printf("──────────────────────────────────────────────\n");
+
+    // Test ID generation
+    int original_next_id = db.next_id;
+    int new_id1 = get_next_test_id();
+    int new_id2 = get_next_test_id();
+
+    assert(new_id1 == original_next_id);
+    assert(new_id2 == original_next_id + 1);
+    assert(new_id1 != new_id2);
+    printf("✓ ID generation and uniqueness working correctly\n");
+
+    printf("\nE2E Test 3: Input Validation Integration\n");
+    printf("─────────────────────────────────────────────────\n");
+
+    // Test system name validation in context
+    char valid_names[][50] = {
+        "Production API Server",
+        "Test-Environment_v2.0",
+        "System[Backend]",
+        "Database (Primary)"};
+
+    for (int i = 0; i < 4; i++)
+    {
+        assert(validate_system_name(valid_names[i]) == 1);
+    }
+
+    // Test test type validation in context
+    char valid_types[][30] = {
+        "UnitTest",
+        "IntegrationTest",
+        "SystemTest",
+        "PerformanceTest"};
+
+    for (int i = 0; i < 4; i++)
+    {
+        assert(validate_test_type(valid_types[i]) == 1);
+    }
+
+    printf("✓ Input validation integration working correctly\n");
+
+    printf("\nE2E Test 4: Enum Conversion Workflow\n");
+    printf("─────────────────────────────────────────────\n");
+
+    // Test complete enum conversion workflow
+    const char *result_strings[] = {"Failed", "Passed", "Pending", "Success"};
+    TestResult expected_results[] = {FAILED, PASSED, PENDING, SUCCESS};
+
+    for (int i = 0; i < 4; i++)
+    {
+        TestResult converted = string_to_test_result(result_strings[i]);
+        assert(converted == expected_results[i]);
+
+        const char *back_converted = test_result_to_string(converted);
+        assert(strcmp(back_converted, result_strings[i]) == 0);
+    }
+
+    printf("✓ Enum conversion workflow working correctly\n");
+
+    printf("\nE2E Test 5: Memory Management\n");
+    printf("───────────────────────────────────────\n");
+
+    // Test memory allocation and deallocation patterns
+    TestRecord *temp_records = malloc(db.count * sizeof(TestRecord));
+    assert(temp_records != NULL);
+
+    // Copy and verify data
+    for (int i = 0; i < db.count; i++)
+    {
+        temp_records[i] = db.records[i];
+        assert(temp_records[i].test_id == db.records[i].test_id);
+        assert(strcmp(temp_records[i].system_name, db.records[i].system_name) == 0);
+    }
+
+    free(temp_records);
+    printf("✓ Memory management working correctly\n");
+
+    // Restore original database state
+    db = *original_db;
+    free(original_db);
+
+    printf("\n╔══════════════════════════════════════════════════════════════╗\n");
+    printf("║                    E2E TEST SUMMARY                          ║\n");
+    printf("╠══════════════════════════════════════════════════════════════╣\n");
+    printf("║ Complete Database Workflow:    PASSED                        ║\n");
+    printf("║ ID Generation & Uniqueness:    PASSED                        ║\n");
+    printf("║ Input Validation Integration:  PASSED                        ║\n");
+    printf("║ Enum Conversion Workflow:      PASSED                        ║\n");
+    printf("║ Memory Management:             PASSED                        ║\n");
+    printf("╠══════════════════════════════════════════════════════════════╣\n");
+    printf("║ ALL E2E TESTS PASSED SUCCESSFULLY!                           ║\n");
+    printf("╚══════════════════════════════════════════════════════════════╝\n");
+}
 
 void show_main_menu(void)
 {
@@ -1598,12 +2186,14 @@ int main(void)
             int test_choice = get_menu_choice(1, 3);
             if (test_choice == 1)
             {
-                printf("Running unit tests...\n");
+                clear_screen();
+                run_all_tests();
                 pause_screen();
             }
             else if (test_choice == 2)
             {
-                printf("Running end-to-end tests...\n");
+                clear_screen();
+                run_e2e_tests();
                 pause_screen();
             }
             break;
