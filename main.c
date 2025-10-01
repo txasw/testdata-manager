@@ -1705,7 +1705,7 @@ void test_crud_operations(void)
         printf("Error: Unable to allocate memory for database backup.\n");
         return;
     }
-    *original_db = db;
+    memcpy(original_db, &db, sizeof(Database));
 
     // Initialize test database
     memset(&db, 0, sizeof(db));
@@ -1885,7 +1885,7 @@ void run_e2e_tests(void)
         printf("Error: Unable to allocate memory for database backup.\n");
         return;
     }
-    *original_db = db;
+    memcpy(original_db, &db, sizeof(Database));
 
     printf("E2E Test 1: Complete Database Workflow\n");
     printf("─────────────────────────────────────────────\n");
