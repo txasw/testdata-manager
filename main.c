@@ -2103,7 +2103,7 @@ void cleanup_memory(void)
     printf("Memory cleanup completed.\n");
 }
 
-#ifndef __GLIBC__
+#ifdef _WIN32
 char *strcasestr(const char *haystack, const char *needle)
 {
     if (!haystack || !needle)
