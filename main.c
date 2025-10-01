@@ -212,9 +212,10 @@ int validate_test_id(const char *input)
     if (!input)
         return 0;
 
-    char *original = strdup(input);
+    char *original = malloc(strlen(input) + 1);
     if (!original)
         return 0;
+    strcpy(original, input);
     char *trimmed = trim_string(original);
 
     if (strlen(trimmed) == 0)
