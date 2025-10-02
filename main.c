@@ -2098,9 +2098,14 @@ void show_main_menu(void)
 
 void cleanup_memory(void)
 {
-    // In this implementation, we use static arrays, so no dynamic cleanup needed
-    // But we could add any necessary cleanup here
-    printf("Memory cleanup completed.\n");
+    memset(&db, 0, sizeof(Database));
+    printf("✓ Global database structure cleared\n");
+    
+    fflush(stdout);
+    fflush(stderr);
+    printf("✓ Output buffers flushed\n");
+    
+    printf("✓ Memory cleanup completed successfully\n");
 }
 
 #ifdef _WIN32
