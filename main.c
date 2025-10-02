@@ -2101,11 +2101,6 @@ void cleanup_memory(void)
     memset(&db, 0, sizeof(Database));
     printf("✓ Global database structure cleared\n");
     
-    db.count = 0;
-    db.next_id = 1;
-    strcpy(db.filename, "");
-    printf("✓ Database state reset\n");
-    
     fflush(stdout);
     fflush(stderr);
     printf("✓ Output buffers flushed\n");
